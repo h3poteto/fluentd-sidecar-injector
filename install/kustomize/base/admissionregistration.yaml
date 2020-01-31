@@ -1,0 +1,20 @@
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: fluentd-sidecar-injector
+  labels:
+    app: fluentd-sidecar-injector
+    kind: mutator
+webhooks:
+  - name: fluentd-sidecar-injector.h3poteto.dev
+    clientConfig:
+      service:
+        name: fluentd-sidecar-injector-webhook
+        # namespace: default
+        path: "/mutate"
+      # caBundle:
+    rules:
+      - operations: [ "CREATE" ]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
