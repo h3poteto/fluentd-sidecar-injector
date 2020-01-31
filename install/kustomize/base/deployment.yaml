@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: fluentd-sidecar-injector
@@ -6,6 +6,9 @@ metadata:
     app: fluentd-sidecar-injector
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: fluentd-sidecar-injector
   template:
     metadata:
       labels:

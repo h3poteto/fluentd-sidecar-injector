@@ -6,6 +6,6 @@ resources:
 secretGenerator:
   - name: fluentd-sidecar-injector-certs
     files:
-      - cert.pem=certs/webhookCA.key
-      - key.pem=certs/webhook.crt
+      - cert.pem=certs/webhook.crt
+      - key.pem=certs/webhookCA.key
     type: Opaque
