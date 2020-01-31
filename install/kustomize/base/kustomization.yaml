@@ -1,6 +1,6 @@
 resources:
   - service.yaml
-  - admissionregistration.yaml
+  - mutating-webhook-configuration.yaml
   - deployment.yaml
 
 secretGenerator:

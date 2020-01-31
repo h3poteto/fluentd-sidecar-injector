@@ -4,4 +4,4 @@ bases:
   - ./base
 
 patches:
-  - admissionregistration.yaml
+  - mutating-webhook-configuration.yaml
