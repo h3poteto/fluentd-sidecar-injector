@@ -1,0 +1,11 @@
+resources:
+  - service.yaml
+  - admissionregistration.yaml
+  - deployment.yaml
+
+secretGenerator:
+  - name: fluentd-sidecar-injector-certs
+    files:
+      - cert.pem=certs/webhookCA.key
+      - key.pem=certs/webhook.crt
+    type: Opaque

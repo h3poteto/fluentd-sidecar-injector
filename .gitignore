@@ -1,0 +1,2 @@
+install/kustomize/*.yaml
+install/kustomize/base/certs/*
