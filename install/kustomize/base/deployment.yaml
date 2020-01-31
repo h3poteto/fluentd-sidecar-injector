@@ -24,6 +24,12 @@ spec:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
               readOnly: true
+          resources:
+            requests:
+              memory: 200Mi
+              cpu: 100m
+            limits:
+              memory: 1000Mi
       volumes:
         - name: webhook-certs
           secret:
