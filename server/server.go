@@ -68,6 +68,35 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 		Name:  "fluentd-sidecar",
 		Image: fluentdEnv.DockerImage,
 	}
+
+	// Override env with fluentdEnv.
+	if len(fluentdEnv.AggregatorHost) > 0 {
+		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+			Name:  "AGGREGATOR_HOST",
+			Value: fluentdEnv.AggregatorHost,
+		})
+	}
+	if len(fluentdEnv.ApplicationLogPath) > 0 {
+		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+			Name:  "APPLICATION_LOG_PATH",
+			Value: fluentdEnv.ApplicationLogPath,
+		})
+	}
+	if len(fluentdEnv.TagPrefix) > 0 {
+		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+			Name:  "TAG_PREFIX",
+			Value: fluentdEnv.TagPrefix,
+		})
+	}
+	if len(fluentdEnv.TimeKey) > 0 {
+		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+			Name:  "TIME_KEY",
+			Value: fluentdEnv.TimeKey,
+		})
+	}
+
+	// TODO: Override env with Pod's annotations.
+
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 
 	return false, nil
