@@ -5,12 +5,21 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/kelseyhightower/envconfig"
 	webhookhttp "github.com/slok/kubewebhook/pkg/http"
 	"github.com/slok/kubewebhook/pkg/log"
 	"github.com/slok/kubewebhook/pkg/webhook/mutating"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+type Env struct {
+	DockerImage        string `envconfig:"DOCKER_IMAGE" default:"h3poteto/fluentd-forward:latest"`
+	ApplicationLogPath string `envconfig:"APPLICATION_LOG_PATH" default:"/app"`
+	TimeKey            string `envconfig:"TIME_KEY" default:"time"`
+	TagPrefix          string `envconfig:"TAG_PREFIX"`
+	AggregatorHost     string `envconfig:"AGGREGATOR_HOST"`
+}
 
 func StartServer(tlsCertFile, tlsKeyFile string) error {
 	logger := &log.Std{Debug: true}
@@ -52,9 +61,12 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 		return false, nil
 	}
 
+	var fluentdEnv Env
+	envconfig.Process("fluentd", &fluentdEnv)
+
 	sidecar := corev1.Container{
 		Name:  "fluentd-sidecar",
-		Image: "fluent/fluentd:v1.9.0-1.0",
+		Image: fluentdEnv.DockerImage,
 	}
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 
