@@ -12,7 +12,7 @@ spec:
   template:
     metadata:
       annotations:
-        h3poteto.dev.fluentd-sidecar-injection: "enabled"
+        fluentd-sidecar-injector.h3poteto.dev/injection: "enabled"
       labels:
         app: nginx-test
     spec:
