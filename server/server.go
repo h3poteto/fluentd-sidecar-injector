@@ -15,8 +15,8 @@ import (
 
 type Env struct {
 	DockerImage        string `envconfig:"DOCKER_IMAGE" default:"h3poteto/fluentd-forward:latest"`
-	ApplicationLogPath string `envconfig:"APPLICATION_LOG_PATH" default:"/app"`
-	TimeKey            string `envconfig:"TIME_KEY" default:"time"`
+	ApplicationLogPath string `envconfig:"APPLICATION_LOG_PATH"`
+	TimeKey            string `envconfig:"TIME_KEY"`
 	TagPrefix          string `envconfig:"TAG_PREFIX"`
 	AggregatorHost     string `envconfig:"AGGREGATOR_HOST"`
 }
@@ -57,45 +57,68 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 		return false, nil
 	}
 
-	if pod.Annotations["h3poteto.dev.fluentd-sidecar-injection"] != "enabled" {
+	if pod.Annotations["fluentd-sidecar-injector.h3poteto.dev/injection"] != "enabled" {
 		return false, nil
 	}
 
 	var fluentdEnv Env
 	envconfig.Process("fluentd", &fluentdEnv)
 
+	dockerImage := fluentdEnv.DockerImage
+	if value, ok := pod.Annotations["fluentd-sidecar-injector.h3poteto.dev/docker-image"]; ok {
+		dockerImage = value
+	}
+
 	sidecar := corev1.Container{
 		Name:  "fluentd-sidecar",
-		Image: fluentdEnv.DockerImage,
+		Image: dockerImage,
 	}
 
-	// Override env with fluentdEnv.
-	if len(fluentdEnv.AggregatorHost) > 0 {
+	// Override env with fluentdEnv and Pod's annotations.
+	aggregatorHost := fluentdEnv.AggregatorHost
+	if value, ok := pod.Annotations["fluentd-sidecar-injector.h3poteto.dev/aggregator-host"]; ok {
+		aggregatorHost = value
+	}
+
+	if len(aggregatorHost) > 0 {
 		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
 			Name:  "AGGREGATOR_HOST",
-			Value: fluentdEnv.AggregatorHost,
-		})
-	}
-	if len(fluentdEnv.ApplicationLogPath) > 0 {
-		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
-			Name:  "APPLICATION_LOG_PATH",
-			Value: fluentdEnv.ApplicationLogPath,
-		})
-	}
-	if len(fluentdEnv.TagPrefix) > 0 {
-		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
-			Name:  "TAG_PREFIX",
-			Value: fluentdEnv.TagPrefix,
-		})
-	}
-	if len(fluentdEnv.TimeKey) > 0 {
-		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
-			Name:  "TIME_KEY",
-			Value: fluentdEnv.TimeKey,
+			Value: aggregatorHost,
 		})
 	}
 
-	// TODO: Override env with Pod's annotations.
+	applicationLogPath := fluentdEnv.ApplicationLogPath
+	if value, ok := pod.Annotations["fluentd-sidecar-injector.h3poteto.dev/application-log-path"]; ok {
+		applicationLogPath = value
+	}
+	if len(applicationLogPath) > 0 {
+		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+			Name:  "APPLICATION_LOG_PATH",
+			Value: applicationLogPath,
+		})
+	}
+
+	tagPrefix := fluentdEnv.TagPrefix
+	if value, ok := pod.Annotations["fluentd-sidecar-injector.h3poteto.dev/tag-prefix"]; ok {
+		tagPrefix = value
+	}
+	if len(tagPrefix) > 0 {
+		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+			Name:  "TAG_PREFIX",
+			Value: tagPrefix,
+		})
+	}
+
+	timeKey := fluentdEnv.TimeKey
+	if value, ok := pod.Annotations["fluentd-sidecar-injector.h3poteto.dev/time-key"]; ok {
+		timeKey = value
+	}
+	if len(timeKey) > 0 {
+		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+			Name:  "TIME_KEY",
+			Value: timeKey,
+		})
+	}
 
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 
