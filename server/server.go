@@ -14,11 +14,11 @@ import (
 )
 
 type Env struct {
-	DockerImage        string `envconfig:"DOCKER_IMAGE" default:"h3poteto/fluentd-forward:latest"`
-	ApplicationLogPath string `envconfig:"APPLICATION_LOG_PATH"`
-	TimeKey            string `envconfig:"TIME_KEY"`
-	TagPrefix          string `envconfig:"TAG_PREFIX"`
-	AggregatorHost     string `envconfig:"AGGREGATOR_HOST"`
+	DockerImage       string `envconfig:"DOCKER_IMAGE" default:"h3poteto/fluentd-forward:latest"`
+	ApplicationLogDir string `envconfig:"APPLICATION_LOG_DIR"`
+	TimeKey           string `envconfig:"TIME_KEY"`
+	TagPrefix         string `envconfig:"TAG_PREFIX"`
+	AggregatorHost    string `envconfig:"AGGREGATOR_HOST"`
 }
 
 func StartServer(tlsCertFile, tlsKeyFile string) error {
@@ -87,14 +87,14 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 		})
 	}
 
-	applicationLogPath := fluentdEnv.ApplicationLogPath
-	if value, ok := pod.Annotations["fluentd-sidecar-injector.h3poteto.dev/application-log-path"]; ok {
-		applicationLogPath = value
+	applicationLogDir := fluentdEnv.ApplicationLogDir
+	if value, ok := pod.Annotations["fluentd-sidecar-injector.h3poteto.dev/application-log-dir"]; ok {
+		applicationLogDir = value
 	}
-	if len(applicationLogPath) > 0 {
+	if len(applicationLogDir) > 0 {
 		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
-			Name:  "APPLICATION_LOG_PATH",
-			Value: applicationLogPath,
+			Name:  "APPLICATION_LOG_DIR",
+			Value: applicationLogDir,
 		})
 	}
 
