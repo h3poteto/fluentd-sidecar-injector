@@ -10,6 +10,7 @@ import (
 	"github.com/slok/kubewebhook/pkg/log"
 	"github.com/slok/kubewebhook/pkg/webhook/mutating"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -72,6 +73,15 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 	sidecar := corev1.Container{
 		Name:  "fluentd-sidecar",
 		Image: dockerImage,
+		Resources: corev1.ResourceRequirements{
+			Requests: map[corev1.ResourceName]resource.Quantity{
+				corev1.ResourceMemory: *resource.NewQuantity(200*1024*1024, resource.BinarySI),
+				corev1.ResourceCPU:    *resource.NewMilliQuantity(100, resource.DecimalSI),
+			},
+			Limits: map[corev1.ResourceName]resource.Quantity{
+				corev1.ResourceMemory: *resource.NewMilliQuantity(1000, resource.DecimalSI),
+			},
+		},
 	}
 
 	// Override env with fluentdEnv and Pod's annotations.
