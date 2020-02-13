@@ -1,0 +1,64 @@
+version: 2
+
+jobs:
+  build:
+    docker:
+      - image: golang:1.13.7-alpine3.11
+    working_directory: /go/src/github.com/h3poteto/fluentd-sidecar-injector
+    steps:
+      - checkout
+      - run:
+          name: build
+          command: |
+            go mod download
+            go build
+
+  create_image:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: Docker build
+          command: |
+            docker build -t h3poteto/fluentd-sidecar-injector:$CIRCLE_SHA1 .
+      - run:
+          name: push
+          command: |
+            docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_PASSWORD}
+            docker push h3poteto/fluentd-sidecar-injector:$CIRCLE_SHA1
+
+  create_latest_image:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: Docker build
+          command: |
+            docker build -t h3poteto/fluentd-sidecar-injector:latest .
+      - run:
+          name: push
+          command: |
+            docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_PASSWORD}
+            docker push h3poteto/fluentd-sidecar-injector:latest
+
+workflows:
+  version: 2
+  build_and_push:
+    jobs:
+      - build
+      - create_image:
+          filters:
+            branches:
+              ignore:
+                - master
+          requires:
+            - build
+      - create_latest_image:
+          filters:
+            branches:
+              only:
+                - master
+          requires:
+            - build
+
+
