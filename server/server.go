@@ -79,7 +79,7 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 				corev1.ResourceCPU:    *resource.NewMilliQuantity(100, resource.DecimalSI),
 			},
 			Limits: map[corev1.ResourceName]resource.Quantity{
-				corev1.ResourceMemory: *resource.NewMilliQuantity(1000, resource.DecimalSI),
+				corev1.ResourceMemory: *resource.NewQuantity(1000*1024*1024, resource.BinarySI),
 			},
 		},
 	}
