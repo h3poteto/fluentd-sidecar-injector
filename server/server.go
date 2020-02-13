@@ -91,13 +91,6 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 				corev1.ResourceMemory: *resource.NewQuantity(1000*1024*1024, resource.BinarySI),
 			},
 		},
-		VolumeMounts: []corev1.VolumeMount{
-			corev1.VolumeMount{
-				Name:      volumeName,
-				ReadOnly:  false,
-				MountPath: "/app",
-			},
-		},
 	}
 
 	// Override env with fluentdEnv and Pod's annotations.
@@ -130,6 +123,9 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 		ReadOnly:  false,
 		MountPath: applicationLogDir,
 	}
+	sidecar.VolumeMounts = []corev1.VolumeMount{
+		volumeMount,
+	}
 
 	tagPrefix := fluentdEnv.TagPrefix
 	if value, ok := pod.Annotations["fluentd-sidecar-injector.h3poteto.dev/tag-prefix"]; ok {
@@ -153,12 +149,16 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 		})
 	}
 
-	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
-
 	// Inject volume mount for all containers in the pod.
+	var containers []corev1.Container
+
 	for _, container := range pod.Spec.Containers {
 		container.VolumeMounts = append(container.VolumeMounts, volumeMount)
+		containers = append(containers, container)
 	}
+	containers = append(containers, sidecar)
+
+	pod.Spec.Containers = containers
 
 	return false, nil
 }
