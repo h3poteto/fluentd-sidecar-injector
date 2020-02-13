@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -70,6 +71,14 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 		dockerImage = value
 	}
 
+	volumeName := "fluentd-sidecar-injector-logs"
+	pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
+		Name: volumeName,
+		VolumeSource: corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
+		},
+	})
+
 	sidecar := corev1.Container{
 		Name:  "fluentd-sidecar",
 		Image: dockerImage,
@@ -80,6 +89,13 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 			},
 			Limits: map[corev1.ResourceName]resource.Quantity{
 				corev1.ResourceMemory: *resource.NewQuantity(1000*1024*1024, resource.BinarySI),
+			},
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			corev1.VolumeMount{
+				Name:      volumeName,
+				ReadOnly:  false,
+				MountPath: "/app",
 			},
 		},
 	}
@@ -101,11 +117,18 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 	if value, ok := pod.Annotations["fluentd-sidecar-injector.h3poteto.dev/application-log-dir"]; ok {
 		applicationLogDir = value
 	}
-	if len(applicationLogDir) > 0 {
-		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
-			Name:  "APPLICATION_LOG_DIR",
-			Value: applicationLogDir,
-		})
+	if len(applicationLogDir) == 0 {
+		return false, errors.New("application log dir is required")
+	}
+	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+		Name:  "APPLICATION_LOG_DIR",
+		Value: applicationLogDir,
+	})
+
+	volumeMount := corev1.VolumeMount{
+		Name:      volumeName,
+		ReadOnly:  false,
+		MountPath: applicationLogDir,
 	}
 
 	tagPrefix := fluentdEnv.TagPrefix
@@ -131,6 +154,11 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 	}
 
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
+
+	// Inject volume mount for all containers in the pod.
+	for _, container := range pod.Spec.Containers {
+		container.VolumeMounts = append(container.VolumeMounts, volumeMount)
+	}
 
 	return false, nil
 }
