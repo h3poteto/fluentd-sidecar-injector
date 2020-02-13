@@ -13,6 +13,7 @@ spec:
     metadata:
       annotations:
         fluentd-sidecar-injector.h3poteto.dev/injection: "enabled"
+        fluentd-sidecar-injector.h3poteto.dev/application-log-dir: "/var/log/nginx"
       labels:
         app: nginx-test
     spec:
