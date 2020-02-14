@@ -15,12 +15,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var annotationPrefix = "fluentd-sidecar-injector.h3poteto.dev"
+
 type Env struct {
 	DockerImage       string `envconfig:"DOCKER_IMAGE" default:"h3poteto/fluentd-forward:latest"`
 	ApplicationLogDir string `envconfig:"APPLICATION_LOG_DIR"`
+	TimeFormat        string `envconfig:"TIME_FORMAT"`
 	TimeKey           string `envconfig:"TIME_KEY"`
 	TagPrefix         string `envconfig:"TAG_PREFIX"`
 	AggregatorHost    string `envconfig:"AGGREGATOR_HOST"`
+	AggregatorPort    string `envconfig:"AGGREGATOR_PORT"`
 }
 
 func StartServer(tlsCertFile, tlsKeyFile string) error {
@@ -59,7 +63,7 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 		return false, nil
 	}
 
-	if pod.Annotations["fluentd-sidecar-injector.h3poteto.dev/injection"] != "enabled" {
+	if pod.Annotations[annotationPrefix+"/injection"] != "enabled" {
 		return false, nil
 	}
 
@@ -67,7 +71,7 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 	envconfig.Process("fluentd", &fluentdEnv)
 
 	dockerImage := fluentdEnv.DockerImage
-	if value, ok := pod.Annotations["fluentd-sidecar-injector.h3poteto.dev/docker-image"]; ok {
+	if value, ok := pod.Annotations[annotationPrefix+"/docker-image"]; ok {
 		dockerImage = value
 	}
 
@@ -93,9 +97,31 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 		},
 	}
 
+	// Override env with Pod's annotations.
+	if value, ok := pod.Annotations[annotationPrefix+"/send-timeout"]; ok {
+		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+			Name:  "SEND_TIMEOUT",
+			Value: value,
+		})
+	}
+
+	if value, ok := pod.Annotations[annotationPrefix+"/recover-wait"]; ok {
+		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+			Name:  "RECOVER_WAIT",
+			Value: value,
+		})
+	}
+
+	if value, ok := pod.Annotations[annotationPrefix+"/hard-timeout"]; ok {
+		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+			Name:  "HARD_TIMEOUT",
+			Value: value,
+		})
+	}
+
 	// Override env with fluentdEnv and Pod's annotations.
 	aggregatorHost := fluentdEnv.AggregatorHost
-	if value, ok := pod.Annotations["fluentd-sidecar-injector.h3poteto.dev/aggregator-host"]; ok {
+	if value, ok := pod.Annotations[annotationPrefix+"/aggregator-host"]; ok {
 		aggregatorHost = value
 	}
 
@@ -106,8 +132,20 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 		})
 	}
 
+	aggregatorPort := fluentdEnv.AggregatorPort
+	if value, ok := pod.Annotations[annotationPrefix+"/aggregator-port"]; ok {
+		aggregatorPort = value
+	}
+
+	if len(aggregatorPort) > 0 {
+		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+			Name:  "AGGREGATOR_PORT",
+			Value: aggregatorPort,
+		})
+	}
+
 	applicationLogDir := fluentdEnv.ApplicationLogDir
-	if value, ok := pod.Annotations["fluentd-sidecar-injector.h3poteto.dev/application-log-dir"]; ok {
+	if value, ok := pod.Annotations[annotationPrefix+"/application-log-dir"]; ok {
 		applicationLogDir = value
 	}
 	if len(applicationLogDir) == 0 {
@@ -128,7 +166,7 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 	}
 
 	tagPrefix := fluentdEnv.TagPrefix
-	if value, ok := pod.Annotations["fluentd-sidecar-injector.h3poteto.dev/tag-prefix"]; ok {
+	if value, ok := pod.Annotations[annotationPrefix+"/tag-prefix"]; ok {
 		tagPrefix = value
 	}
 	if len(tagPrefix) > 0 {
@@ -139,13 +177,24 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 	}
 
 	timeKey := fluentdEnv.TimeKey
-	if value, ok := pod.Annotations["fluentd-sidecar-injector.h3poteto.dev/time-key"]; ok {
+	if value, ok := pod.Annotations[annotationPrefix+"/time-key"]; ok {
 		timeKey = value
 	}
 	if len(timeKey) > 0 {
 		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
 			Name:  "TIME_KEY",
 			Value: timeKey,
+		})
+	}
+
+	timeFormat := fluentdEnv.TimeFormat
+	if value, ok := pod.Annotations[annotationPrefix+"/time-format"]; ok {
+		timeFormat = value
+	}
+	if len(timeFormat) > 0 {
+		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+			Name:  "TIME_FORMAT",
+			Value: timeFormat,
 		})
 	}
 
