@@ -27,12 +27,6 @@ spec:
           # These parameters can be overrided by Pod's annotations.
             - name: FLUENTD_DOCKER_IMAGE
               value: h3poteto/fluentd-forward:latest
-            - name: FLUENTD_TIME_KEY
-              value: time
-            - name: FLUENTD_TAG_PREFIX
-              value: prod
-            - name: FLUENTD_AGGREGATOR_HOST
-              value: 127.0.0.1
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
