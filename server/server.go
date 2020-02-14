@@ -21,11 +21,11 @@ var annotationPrefix = "fluentd-sidecar-injector.h3poteto.dev"
 type Env struct {
 	DockerImage       string `envconfig:"DOCKER_IMAGE" default:"h3poteto/fluentd-forward:latest"`
 	ApplicationLogDir string `envconfig:"APPLICATION_LOG_DIR"`
-	TimeFormat        string `envconfig:"TIME_FORMAT"`
-	TimeKey           string `envconfig:"TIME_KEY"`
-	TagPrefix         string `envconfig:"TAG_PREFIX"`
+	TimeFormat        string `envconfig:"TIME_FORMAT" default:"%Y-%m-%dT%H:%M:%S%z"`
+	TimeKey           string `envconfig:"TIME_KEY" default:"time"`
+	TagPrefix         string `envconfig:"TAG_PREFIX" default:"app"`
 	AggregatorHost    string `envconfig:"AGGREGATOR_HOST"`
-	AggregatorPort    string `envconfig:"AGGREGATOR_PORT"`
+	AggregatorPort    string `envconfig:"AGGREGATOR_PORT" default:"24224"`
 }
 
 // StartServer run webhook server.
@@ -101,26 +101,32 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 	}
 
 	// Override env with Pod's annotations.
+	sendTimeout := "60s"
 	if value, ok := pod.Annotations[annotationPrefix+"/send-timeout"]; ok {
-		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
-			Name:  "SEND_TIMEOUT",
-			Value: value,
-		})
+		sendTimeout = value
 	}
+	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+		Name:  "SEND_TIMEOUT",
+		Value: sendTimeout,
+	})
 
+	recoverWait := "10s"
 	if value, ok := pod.Annotations[annotationPrefix+"/recover-wait"]; ok {
-		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
-			Name:  "RECOVER_WAIT",
-			Value: value,
-		})
+		recoverWait = value
 	}
+	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+		Name:  "RECOVER_WAIT",
+		Value: recoverWait,
+	})
 
+	hardTimeout := "120s"
 	if value, ok := pod.Annotations[annotationPrefix+"/hard-timeout"]; ok {
-		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
-			Name:  "HARD_TIMEOUT",
-			Value: value,
-		})
+		hardTimeout = value
 	}
+	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+		Name:  "HARD_TIMEOUT",
+		Value: hardTimeout,
+	})
 
 	// Override env with fluentdEnv and Pod's annotations.
 	aggregatorHost := fluentdEnv.AggregatorHost
@@ -128,12 +134,13 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 		aggregatorHost = value
 	}
 
-	if len(aggregatorHost) > 0 {
-		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
-			Name:  "AGGREGATOR_HOST",
-			Value: aggregatorHost,
-		})
+	if len(aggregatorHost) == 0 {
+		return false, errors.New("aggregator host is required")
 	}
+	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+		Name:  "AGGREGATOR_HOST",
+		Value: aggregatorHost,
+	})
 
 	aggregatorPort := fluentdEnv.AggregatorPort
 	if value, ok := pod.Annotations[annotationPrefix+"/aggregator-port"]; ok {
