@@ -10,7 +10,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/slok/kubewebhook v0.3.0
 	github.com/spf13/cobra v0.0.5
-	golang.org/x/net v0.0.0-20190522155817-f3200d17e092 // indirect
+	golang.org/x/net v0.0.0-20190620200207-3b0461eec859 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/yaml.v2 v2.2.4 // indirect
 	k8s.io/api v0.0.0-20190528110122-9ad12a4af326
