@@ -41,6 +41,20 @@ jobs:
             docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_PASSWORD}
             docker push h3poteto/fluentd-sidecar-injector:latest
 
+  create_tag_image:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: Docker build
+          command: |
+            docker build -t h3poteto/fluentd-sidecar-injector:${CIRCLE_TAG} .
+      - run:
+          name: push
+          command: |
+            docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_PASSWORD}
+            docker push h3poteto/fluentd-sidecar-injector:${CIRCLE_TAG}
+
 workflows:
   version: 2
   build_and_push:
@@ -60,5 +74,10 @@ workflows:
                 - master
           requires:
             - build
-
+      - create_tag_image:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              ignore: /.*/
 
