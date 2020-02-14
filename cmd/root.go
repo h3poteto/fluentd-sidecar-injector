@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// RootCmd is cobra command.
 var RootCmd = &cobra.Command{
 	Use:           "fluentd-sidecar-injector",
 	Short:         "fluentd-sidecar-injector is a webhook server to inject fluentd sidecar",

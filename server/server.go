@@ -17,6 +17,7 @@ import (
 
 var annotationPrefix = "fluentd-sidecar-injector.h3poteto.dev"
 
+// Env is required environment variables to run this server.
 type Env struct {
 	DockerImage       string `envconfig:"DOCKER_IMAGE" default:"h3poteto/fluentd-forward:latest"`
 	ApplicationLogDir string `envconfig:"APPLICATION_LOG_DIR"`
@@ -27,6 +28,7 @@ type Env struct {
 	AggregatorPort    string `envconfig:"AGGREGATOR_PORT"`
 }
 
+// StartServer run webhook server.
 func StartServer(tlsCertFile, tlsKeyFile string) error {
 	logger := &log.Std{Debug: true}
 
@@ -56,6 +58,7 @@ func StartServer(tlsCertFile, tlsKeyFile string) error {
 
 }
 
+// sidecarInjectMutator mutates requested pod definition to inject fluentd as sidecar.
 func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err error) {
 	pod, ok := obj.(*corev1.Pod)
 
