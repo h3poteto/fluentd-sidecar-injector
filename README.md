@@ -113,6 +113,8 @@ $ kubectl apply -k ./install/kustomize
 
 ## Annotations
 
+Please specify these annotations to your pods like [this](example/deployment.yaml).
+
 |Name|Required|Default|
 |---|---|---|
 | [fluentd-sidecar-injector.h3poteto.dev/injection](#injection) | optional | "" |
@@ -142,7 +144,7 @@ $ kubectl apply -k ./install/kustomize
 
 
 ## Environment variables
-If you use same parameters for all sidecar fluentd containers which are injected by this webhook, you can set the parameters with environment variables.
+If you use same parameters for all sidecar fluentd containers which are injected by this webhook, you can set the parameters with environment variables. If you want to specify these environment variables, please customize [kustomize template](install/kustomize/base/deployment.yaml).
 
 |Name|Default|
 |---|---|
