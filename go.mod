@@ -8,7 +8,7 @@ require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/prometheus/client_golang v0.9.3 // indirect
 	github.com/sirupsen/logrus v1.4.2
-	github.com/slok/kubewebhook v0.3.0
+	github.com/slok/kubewebhook v0.6.0
 	github.com/spf13/cobra v0.0.5
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
