@@ -63,8 +63,8 @@ workflows:
       - create_image:
           filters:
             branches:
-              ignore:
-                - master
+              only:
+                - push-*
           requires:
             - build
       - create_latest_image:
