@@ -10,8 +10,8 @@
 - You can control injection using Pod's annotations
 - You can change fluentd docker image to be injected
 
-
 ## Usage
+
 After you install this webhook server, fluentd sidecar containers are automatically injected. If you provide a deployment:
 
 ```yaml
@@ -29,8 +29,8 @@ spec:
   template:
     metadata:
       annotations:
-        fluentd-sidecar-injector.h3poteto.dev/injection: "enabled"
-        fluentd-sidecar-injector.h3poteto.dev/application-log-dir: "/var/log/nginx"
+        fluentd-sidecar-injector.h3poteto.dev/injection: 'enabled'
+        fluentd-sidecar-injector.h3poteto.dev/application-log-dir: '/var/log/nginx'
       labels:
         app: nginx-test
     spec:
@@ -41,13 +41,13 @@ spec:
 
 fluentd is injected for this Pod.
 
-```
+```sh
 $ kubectl get pod
 NAME                          READY   STATUS    RESTARTS   AGE
 nginx-test-6cbf4485f8-kq8ws   2/2     Running   0          9s
 ```
 
-```
+```sh
 $ kubectl describe pod nginx-test-6cbf4485f8-kq8ws
 Name:           nginx-test-6cbf4485f8-kq8ws
 Namespace:      default
@@ -91,14 +91,15 @@ Containers:
 ```
 
 ## Install
-```
+
+```sh
 $ git clone https://github.com/h3poteto/fluentd-sidecar-injector.git
 $ cd fluentd-sidecar-injector
 ```
 
 At first, please use `make` to generate kustomize template files.
 
-```
+```sh
 $ make build NAMESPACE=kube-system
 ```
 
@@ -106,28 +107,27 @@ You can specify `NAMESPACE` where you want to install this webhook server. It wo
 
 Next, please install it.
 
-```
+```sh
 $ kubectl apply -k ./install/kustomize
 ```
-
 
 ## Annotations
 
 Please specify these annotations to your pods like [this](example/deployment.yaml).
 
-|Name|Required|Default|
-|---|---|---|
-| [fluentd-sidecar-injector.h3poteto.dev/injection](#injection) | optional | "" |
-| [fluentd-sidecar-injector.h3poteto.dev/docker-image](#docker-image) | optional | `h3poteto/fluentd-forward:latest` |
-| [fluentd-sidecar-injector.h3poteto.dev/aggregator-host](#aggregator-host) | required | "" |
-| [fluentd-sidecar-injector.h3poteto.dev/aggregator-port](#aggregator-port) | optional | `24224` |
-| [fluentd-sidecar-injector.h3poteto.dev/application-log-dir](#application-log-dir) | required | "" |
-| [fluentd-sidecar-injector.h3poteto.dev/send-timeout](#send-timeout) | optional | `60s` |
-| [fluentd-sidecar-injector.h3poteto.dev/recover-wait](#recover-wait) | optional | `10s` |
-| [fluentd-sidecar-injector.h3poteto.dev/hard-timeout](#hard-timeout) | optional | `120s` |
-| [fluentd-sidecar-injector.h3poteto.dev/tag-prefix](#tag-prefix) | optional | `app` |
-| [fluentd-sidecar-injector.h3poteto.dev/time-key](#time-key) | optional | `time` |
-| [fluentd-sidecar-injector.h3poteto.dev/time-format](#time-format) | optional | `%Y-%m-%dT%H:%M:%S%z` |
+| Name                                                                              | Required | Default                           |
+| --------------------------------------------------------------------------------- | -------- | --------------------------------- |
+| [fluentd-sidecar-injector.h3poteto.dev/injection](#injection)                     | optional | ""                                |
+| [fluentd-sidecar-injector.h3poteto.dev/docker-image](#docker-image)               | optional | `h3poteto/fluentd-forward:latest` |
+| [fluentd-sidecar-injector.h3poteto.dev/aggregator-host](#aggregator-host)         | required | ""                                |
+| [fluentd-sidecar-injector.h3poteto.dev/aggregator-port](#aggregator-port)         | optional | `24224`                           |
+| [fluentd-sidecar-injector.h3poteto.dev/application-log-dir](#application-log-dir) | required | ""                                |
+| [fluentd-sidecar-injector.h3poteto.dev/send-timeout](#send-timeout)               | optional | `60s`                             |
+| [fluentd-sidecar-injector.h3poteto.dev/recover-wait](#recover-wait)               | optional | `10s`                             |
+| [fluentd-sidecar-injector.h3poteto.dev/hard-timeout](#hard-timeout)               | optional | `120s`                            |
+| [fluentd-sidecar-injector.h3poteto.dev/tag-prefix](#tag-prefix)                   | optional | `app`                             |
+| [fluentd-sidecar-injector.h3poteto.dev/time-key](#time-key)                       | optional | `time`                            |
+| [fluentd-sidecar-injector.h3poteto.dev/time-format](#time-format)                 | optional | `%Y-%m-%dT%H:%M:%S%z`             |
 
 - <a name="injection">`fluentd-sidecar-injector.h3poteto.dev/injection`<a/> specifies whether enable or disable this injector. Please specify `enabled` if you want to enable.
 
@@ -142,21 +142,22 @@ Please specify these annotations to your pods like [this](example/deployment.yam
 - <a name="time-key">`fluentd-sidecar-injector.h3poteto.dev/time-key`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L6). Default is `time`.
 - <a name="time-format">`fluentd-sidecar-injector.h3poteto.dev/time-format`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L7). Default is `%Y-%m-%dT%H:%M:%S%z`.
 
-
 ## Environment variables
+
 If you use same parameters for all sidecar fluentd containers which are injected by this webhook, you can set the parameters with environment variables. If you want to specify these environment variables, please customize [kustomize template](install/kustomize/base/deployment.yaml).
 
-|Name|Default|
-|---|---|
-| [FLUENTD_DOCKER_IMAGE](#docker-image) | `h3poteto/fluentd-forward:latest` |
-| [FLUENTD_AGGREGATOR_HOST](#aggregator-host) | "" |
-| [FLUENTD_AGGREGATOR_PORT](#aggregator-port) | `24224` |
-| [FLUENTD_APPLICATION_LOG_DIR](#application-log-dir) | "" |
-| [FLUENTD_TAG_PREFIX](#tag-prefix) | `app` |
-| [FLUENTD_TIME_KEY](#time-key) | `time` |
-| [FLUENTD_TIME_FORMAT](#time-format) | `%Y-%m-%dT%H:%M:%S%z` |
+| Name                                                | Default                           |
+| --------------------------------------------------- | --------------------------------- |
+| [FLUENTD_DOCKER_IMAGE](#docker-image)               | `h3poteto/fluentd-forward:latest` |
+| [FLUENTD_AGGREGATOR_HOST](#aggregator-host)         | ""                                |
+| [FLUENTD_AGGREGATOR_PORT](#aggregator-port)         | `24224`                           |
+| [FLUENTD_APPLICATION_LOG_DIR](#application-log-dir) | ""                                |
+| [FLUENTD_TAG_PREFIX](#tag-prefix)                   | `app`                             |
+| [FLUENTD_TIME_KEY](#time-key)                       | `time`                            |
+| [FLUENTD_TIME_FORMAT](#time-format)                 | `%Y-%m-%dT%H:%M:%S%z`             |
 
 Note: these parameters will be overrided with Pod annotations if you set.
 
 ## License
+
 The package is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
