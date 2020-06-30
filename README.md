@@ -128,6 +128,7 @@ Please specify these annotations to your pods like [this](example/deployment.yam
 | [fluentd-sidecar-injector.h3poteto.dev/tag-prefix](#tag-prefix)                   | optional | `app`                             |
 | [fluentd-sidecar-injector.h3poteto.dev/time-key](#time-key)                       | optional | `time`                            |
 | [fluentd-sidecar-injector.h3poteto.dev/time-format](#time-format)                 | optional | `%Y-%m-%dT%H:%M:%S%z`             |
+| [fluentd-sidecar-injector.h3poteto.dev/log-format](#log-format)                   | optional | `json`                            |
 
 - <a name="injection">`fluentd-sidecar-injector.h3poteto.dev/injection`<a/> specifies whether enable or disable this injector. Please specify `enabled` if you want to enable.
 
@@ -141,6 +142,7 @@ Please specify these annotations to your pods like [this](example/deployment.yam
 - <a name="tag-prefix">`fluentd-sidecar-injector.h3poteto.dev/tag-prefix`</a> is prefix of received log's tag. Default is `app`. It is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L9).
 - <a name="time-key">`fluentd-sidecar-injector.h3poteto.dev/time-key`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L6). Default is `time`.
 - <a name="time-format">`fluentd-sidecar-injector.h3poteto.dev/time-format`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L7). Default is `%Y-%m-%dT%H:%M:%S%z`.
+- <a name="log-format">`fluentd-sidecar-injector.h3poteto.dev/log-format`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L5). Default is `json`.
 
 ## Environment variables
 
