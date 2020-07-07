@@ -131,10 +131,11 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 
 	mountsCnt := len(sidecar.VolumeMounts)
 	if value, ok := pod.Annotations[annotationPrefix+"/config-volume"]; ok {
-		for _, volume := range pod.Spec.Volumes {
-			if volume.Name == value {
+		volumes := pod.Spec.Volumes
+		for i := range volumes {
+			if name := volumes[i].Name; name == value {
 				sidecar.VolumeMounts = append(sidecar.VolumeMounts, corev1.VolumeMount{
-					Name:      volume.Name,
+					Name:      name,
 					MountPath: "/fluentd/etc/fluent.conf",
 					SubPath:   "fluent.conf",
 				})
