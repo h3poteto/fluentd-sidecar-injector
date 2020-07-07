@@ -90,6 +90,75 @@ Containers:
       /var/log/nginx from fluentd-sidecar-injector-logs (rw)
 ```
 
+### Custom fluent.conf
+
+If you need to use your own fluent.conf, use config-volume option.  
+The following yaml has fluent-conf configmap. It will be mounted on `/fluentd/etc/fluent/fluent.conf`.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-test
+  labels:
+    app: nginx-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-test
+  template:
+    metadata:
+      annotations:
+        fluentd-sidecar-injector.h3poteto.dev/injection: 'enabled'
+        fluentd-sidecar-injector.h3poteto.dev/docker-image: 'fluent/fluentd:latest'
+        fluentd-sidecar-injector.h3poteto.dev/application-log-dir: '/var/log/nginx'
+        fluentd-sidecar-injector.h3poteto.dev/aggregator-host: 'fluentd.example.com'
+        fluentd-sidecar-injector.h3poteto.dev/config-volume: 'fluent-conf'
+      labels:
+        app: nginx-test
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest
+    volumes:
+      - name: fluent-conf
+        configMap:
+          name: fluent-conf
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-conf
+  labels:
+    app: fluent-conf
+data:
+  fluentd.conf: |-
+    <source>
+      @type tail
+      path "#{ENV['APPLICATION_LOG_DIR']}/*.access.log"
+      pos_file /var/tmp/application.log.pos
+      format "ltsv"
+      tag "app.*"
+    </source>
+
+    <filter app.*>
+      @type record_transformer
+      <record>
+        hostname "#{Socket.gethostname}"
+      </record>
+    </filter>
+
+    <match app.*>
+      @type forward
+
+      <server>
+        host "#{ENV['AGGREGATOR_HOST']}"
+        port "#{ENV['AGGREGATOR_PORT']} || 24224"
+      </server>
+    </match>
+```
+
 ## Install
 
 ```sh
@@ -129,6 +198,7 @@ Please specify these annotations to your pods like [this](example/deployment.yam
 | [fluentd-sidecar-injector.h3poteto.dev/time-key](#time-key)                       | optional | `time`                            |
 | [fluentd-sidecar-injector.h3poteto.dev/time-format](#time-format)                 | optional | `%Y-%m-%dT%H:%M:%S%z`             |
 | [fluentd-sidecar-injector.h3poteto.dev/log-format](#log-format)                   | optional | `json`                            |
+| [fluentd-sidecar-injector.h3poteto.dev/config-volume](#config-volume)             | optional | ""                                |
 
 - <a name="injection">`fluentd-sidecar-injector.h3poteto.dev/injection`<a/> specifies whether enable or disable this injector. Please specify `enabled` if you want to enable.
 
@@ -143,6 +213,7 @@ Please specify these annotations to your pods like [this](example/deployment.yam
 - <a name="time-key">`fluentd-sidecar-injector.h3poteto.dev/time-key`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L6). Default is `time`.
 - <a name="time-format">`fluentd-sidecar-injector.h3poteto.dev/time-format`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L7). Default is `%Y-%m-%dT%H:%M:%S%z`.
 - <a name="log-format">`fluentd-sidecar-injector.h3poteto.dev/log-format`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L5). Default is `json`.
+- <a name="config-volume">`fluentd-sidecar-injector.h3poteto.dev/config-volume`</a> can read your own fluent.conf.
 
 ## Environment variables
 
