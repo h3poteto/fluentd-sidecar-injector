@@ -210,6 +210,43 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 		})
 	}
 
+	// Add Downward API
+	// ref: https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/#the-downward-api
+	sidecar.Env = append(sidecar.Env,
+		corev1.EnvVar{
+			Name: "NODE_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.nodeName",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "POD_SERVICE_ACCOUNT",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "spec.serviceAccountName",
+				},
+			},
+		},
+	)
+
 	timeFormat := fluentdEnv.TimeFormat
 	if value, ok := pod.Annotations[annotationPrefix+"/time-format"]; ok {
 		timeFormat = value
