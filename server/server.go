@@ -27,6 +27,7 @@ type Env struct {
 	AggregatorHost    string `envconfig:"AGGREGATOR_HOST"`
 	AggregatorPort    string `envconfig:"AGGREGATOR_PORT" default:"24224"`
 	LogFormat         string `envconfig:"LOG_FORMAT" default:"json"`
+	CustomEnv         string `envconfig:"CUSTOM_ENV"`
 }
 
 // StartServer run webhook server.
@@ -164,6 +165,18 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
 			Name:  "LOG_FORMAT",
 			Value: logFormat,
+		})
+	}
+
+	customEnv := fluentdEnv.CustomEnv
+	if value, ok := pod.Annotations[annotationPrefix+"/custom-env"]; ok {
+		customEnv = value
+	}
+
+	if len(customEnv) > 0 {
+		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+			Name:  "CUSTOM_ENV",
+			Value: customEnv,
 		})
 	}
 
