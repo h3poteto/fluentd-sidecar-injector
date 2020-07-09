@@ -17,6 +17,8 @@ import (
 
 var annotationPrefix = "fluentd-sidecar-injector.h3poteto.dev"
 
+const containerName = "fluentd-sidecar"
+
 // Env is required environment variables to run this server.
 type Env struct {
 	DockerImage       string `envconfig:"DOCKER_IMAGE" default:"h3poteto/fluentd-forward:latest"`
@@ -88,7 +90,7 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 	})
 
 	sidecar := corev1.Container{
-		Name:  "fluentd-sidecar",
+		Name:  containerName,
 		Image: dockerImage,
 		Resources: corev1.ResourceRequirements{
 			Requests: map[corev1.ResourceName]resource.Quantity{
@@ -242,6 +244,42 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{
 					FieldPath: "spec.serviceAccountName",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "CPU_REQUEST",
+			ValueFrom: &corev1.EnvVarSource{
+				ResourceFieldRef: &corev1.ResourceFieldSelector{
+					ContainerName: containerName,
+					Resource:      "requests.cpu",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "CPU_LIMIT",
+			ValueFrom: &corev1.EnvVarSource{
+				ResourceFieldRef: &corev1.ResourceFieldSelector{
+					ContainerName: containerName,
+					Resource:      "limits.cpu",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "MEM_REQUEST",
+			ValueFrom: &corev1.EnvVarSource{
+				ResourceFieldRef: &corev1.ResourceFieldSelector{
+					ContainerName: containerName,
+					Resource:      "requests.memory",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "MEM_LIMIT",
+			ValueFrom: &corev1.EnvVarSource{
+				ResourceFieldRef: &corev1.ResourceFieldSelector{
+					ContainerName: containerName,
+					Resource:      "limits.memory",
 				},
 			},
 		},
