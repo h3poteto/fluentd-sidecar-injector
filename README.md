@@ -231,6 +231,25 @@ If you use same parameters for all sidecar fluentd containers which are injected
 
 Note: these parameters will be overrided with Pod annotations if you set.
 
+### Fixed environment variables
+
+The following values ​​will be set for each fluentd-sidecar.  
+You can use this value in your fluent.conf with config-volume option.
+
+| Name                | Default                   |
+| ------------------- | ------------------------- |
+| NODE_NAME           | `spec.nodeName`           |
+| POD_NAME            | `spec.name`               |
+| POD_NAMESPACE       | `spec.namespace`          |
+| POD_IP              | `status.podIP`            |
+| POD_SERVICE_ACCOUNT | `spec.serviceAccountName` |
+| CPU_RESOURCE        | `requests.cpu`            |
+| CPU_LIMIT           | `limits.cpu`              |
+| MEM_RESOURCE        | `requests.memory`         |
+| MEM_LIMIT           | `limits.memory`           |
+
+You can find out more about the values on [The Downward API](https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/#the-downward-api).
+
 ## License
 
 The package is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
