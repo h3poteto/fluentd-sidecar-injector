@@ -133,7 +133,7 @@ metadata:
   labels:
     app: fluent-conf
 data:
-  fluentd.conf: |-
+  fluent.conf: |-
     <source>
       @type tail
       path "#{ENV['APPLICATION_LOG_DIR']}/*.access.log"
