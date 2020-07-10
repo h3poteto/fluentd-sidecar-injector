@@ -129,25 +129,6 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 		Value: hardTimeout,
 	})
 
-	mountsCnt := len(sidecar.VolumeMounts)
-	if value, ok := pod.Annotations[annotationPrefix+"/config-volume"]; ok {
-		volumes := pod.Spec.Volumes
-		for i := range volumes {
-			if name := volumes[i].Name; name == value {
-				sidecar.VolumeMounts = append(sidecar.VolumeMounts, corev1.VolumeMount{
-					Name:      name,
-					MountPath: "/fluentd/etc/fluent.conf",
-					SubPath:   "fluent.conf",
-				})
-				break
-			}
-		}
-
-		if mountsCnt == len(sidecar.VolumeMounts) {
-			return false, errors.New("config volume does not exist")
-		}
-	}
-
 	// Override env with fluentdEnv and Pod's annotations.
 	aggregatorHost := fluentdEnv.AggregatorHost
 	if value, ok := pod.Annotations[annotationPrefix+"/aggregator-host"]; ok {
@@ -205,6 +186,25 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 	}
 	sidecar.VolumeMounts = []corev1.VolumeMount{
 		volumeMount,
+	}
+
+	mountsCnt := len(sidecar.VolumeMounts)
+	if value, ok := pod.Annotations[annotationPrefix+"/config-volume"]; ok {
+		volumes := pod.Spec.Volumes
+		for i := range volumes {
+			if name := volumes[i].Name; name == value {
+				sidecar.VolumeMounts = append(sidecar.VolumeMounts, corev1.VolumeMount{
+					Name:      name,
+					MountPath: "/fluentd/etc/fluent.conf",
+					SubPath:   "fluent.conf",
+				})
+				break
+			}
+		}
+
+		if mountsCnt == len(sidecar.VolumeMounts) {
+			return false, errors.New("config volume does not exist")
+		}
 	}
 
 	tagPrefix := fluentdEnv.TagPrefix
