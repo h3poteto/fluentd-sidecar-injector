@@ -17,6 +17,8 @@ import (
 
 var annotationPrefix = "fluentd-sidecar-injector.h3poteto.dev"
 
+const containerName = "fluentd-sidecar"
+
 // Env is required environment variables to run this server.
 type Env struct {
 	DockerImage       string `envconfig:"DOCKER_IMAGE" default:"h3poteto/fluentd-forward:latest"`
@@ -89,7 +91,7 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 	})
 
 	sidecar := corev1.Container{
-		Name:  "fluentd-sidecar",
+		Name:  containerName,
 		Image: dockerImage,
 		Resources: corev1.ResourceRequirements{
 			Requests: map[corev1.ResourceName]resource.Quantity{
@@ -201,6 +203,25 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 		volumeMount,
 	}
 
+	mountsCnt := len(sidecar.VolumeMounts)
+	if value, ok := pod.Annotations[annotationPrefix+"/config-volume"]; ok {
+		volumes := pod.Spec.Volumes
+		for i := range volumes {
+			if name := volumes[i].Name; name == value {
+				sidecar.VolumeMounts = append(sidecar.VolumeMounts, corev1.VolumeMount{
+					Name:      name,
+					MountPath: "/fluentd/etc/fluent.conf",
+					SubPath:   "fluent.conf",
+				})
+				break
+			}
+		}
+
+		if mountsCnt == len(sidecar.VolumeMounts) {
+			return false, errors.New("config volume does not exist")
+		}
+	}
+
 	tagPrefix := fluentdEnv.TagPrefix
 	if value, ok := pod.Annotations[annotationPrefix+"/tag-prefix"]; ok {
 		tagPrefix = value
@@ -222,6 +243,79 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 			Value: timeKey,
 		})
 	}
+
+	// Add Downward API
+	// ref: https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/#the-downward-api
+	sidecar.Env = append(sidecar.Env,
+		corev1.EnvVar{
+			Name: "NODE_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.nodeName",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "POD_SERVICE_ACCOUNT",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "spec.serviceAccountName",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "CPU_REQUEST",
+			ValueFrom: &corev1.EnvVarSource{
+				ResourceFieldRef: &corev1.ResourceFieldSelector{
+					ContainerName: containerName,
+					Resource:      "requests.cpu",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "CPU_LIMIT",
+			ValueFrom: &corev1.EnvVarSource{
+				ResourceFieldRef: &corev1.ResourceFieldSelector{
+					ContainerName: containerName,
+					Resource:      "limits.cpu",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "MEM_REQUEST",
+			ValueFrom: &corev1.EnvVarSource{
+				ResourceFieldRef: &corev1.ResourceFieldSelector{
+					ContainerName: containerName,
+					Resource:      "requests.memory",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "MEM_LIMIT",
+			ValueFrom: &corev1.EnvVarSource{
+				ResourceFieldRef: &corev1.ResourceFieldSelector{
+					ContainerName: containerName,
+					Resource:      "limits.memory",
+				},
+			},
+		},
+	)
 
 	timeFormat := fluentdEnv.TimeFormat
 	if value, ok := pod.Annotations[annotationPrefix+"/time-format"]; ok {
