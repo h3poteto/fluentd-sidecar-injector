@@ -199,9 +199,9 @@ Please specify these annotations to your pods like [this](example/deployment.yam
 | [fluentd-sidecar-injector.h3poteto.dev/time-format](#time-format)                 | optional | `%Y-%m-%dT%H:%M:%S%z`             |
 | [fluentd-sidecar-injector.h3poteto.dev/log-format](#log-format)                   | optional | `json`                            |
 | [fluentd-sidecar-injector.h3poteto.dev/config-volume](#config-volume)             | optional | ""                                |
+| [fluentd-sidecar-injector.h3poteto.dev/custom-env](#custom-env)                   | optional | ""                                |
 
 - <a name="injection">`fluentd-sidecar-injector.h3poteto.dev/injection`<a/> specifies whether enable or disable this injector. Please specify `enabled` if you want to enable.
-
 - <a name="docker-image">`fluentd-sidecar-injector.h3poteto.dev/docker-image`</a> specifies sidecar docker image. Default is `h3poteto/fluentd-forward:latest`.
 - <a name="aggregator-host">`fluentd-sidecar-injector.h3poteto.dev/aggregator-host`</a> is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L37). Default docker image forward received logs to another fluentd host. This parameter is required.
 - <a name="aggregator-port">`fluentd-sidecar-injector.h3poteto.dev/aggregator-port`</a> is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L38). Default is `24224`.
@@ -214,6 +214,7 @@ Please specify these annotations to your pods like [this](example/deployment.yam
 - <a name="time-format">`fluentd-sidecar-injector.h3poteto.dev/time-format`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L7). Default is `%Y-%m-%dT%H:%M:%S%z`.
 - <a name="log-format">`fluentd-sidecar-injector.h3poteto.dev/log-format`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L5). Default is `json`.
 - <a name="config-volume">`fluentd-sidecar-injector.h3poteto.dev/config-volume`</a> can read your own fluent.conf.
+- <a name="custom-env">`fluentd-sidecar-injector.h3poteto.dev/custom-env`</a> is an option that allows users to set their own values ​​in fluent.conf. Use with config-volume option.
 
 ## Environment variables
 
