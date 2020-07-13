@@ -219,15 +219,15 @@ Please specify these annotations to your pods like [this](example/deployment.yam
 
 If you use same parameters for all sidecar fluentd containers which are injected by this webhook, you can set the parameters with environment variables. If you want to specify these environment variables, please customize [kustomize template](install/kustomize/base/deployment.yaml).
 
-| Name                                                | Default                           |
-| --------------------------------------------------- | --------------------------------- |
-| [FLUENTD_DOCKER_IMAGE](#docker-image)               | `h3poteto/fluentd-forward:latest` |
-| [FLUENTD_AGGREGATOR_HOST](#aggregator-host)         | ""                                |
-| [FLUENTD_AGGREGATOR_PORT](#aggregator-port)         | `24224`                           |
-| [FLUENTD_APPLICATION_LOG_DIR](#application-log-dir) | ""                                |
-| [FLUENTD_TAG_PREFIX](#tag-prefix)                   | `app`                             |
-| [FLUENTD_TIME_KEY](#time-key)                       | `time`                            |
-| [FLUENTD_TIME_FORMAT](#time-format)                 | `%Y-%m-%dT%H:%M:%S%z`             |
+| Name                                        | Default                           |
+| ------------------------------------------- | --------------------------------- |
+| [DOCKER_IMAGE](#docker-image)               | `h3poteto/fluentd-forward:latest` |
+| [AGGREGATOR_HOST](#aggregator-host)         | ""                                |
+| [AGGREGATOR_PORT](#aggregator-port)         | `24224`                           |
+| [APPLICATION_LOG_DIR](#application-log-dir) | ""                                |
+| [TAG_PREFIX](#tag-prefix)                   | `app`                             |
+| [TIME_KEY](#time-key)                       | `time`                            |
+| [TIME_FORMAT](#time-format)                 | `%Y-%m-%dT%H:%M:%S%z`             |
 
 Note: these parameters will be overrided with Pod annotations if you set.
 
