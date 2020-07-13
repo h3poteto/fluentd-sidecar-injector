@@ -238,7 +238,7 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 			Name: "NODE_NAME",
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{
-					FieldPath: "metadata.nodeName",
+					FieldPath: "spec.nodeName",
 				},
 			},
 		},
