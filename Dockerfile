@@ -15,6 +15,6 @@ RUN set -ex && \
     go build -o fluentd-sidecar-injector
 
 FROM alpine:latest
-COPY --from=builder /go/src/github.com/h3poteto/fluentd-sidecar-injector /fluentd-sidecar-injector
+COPY --from=builder /go/src/github.com/h3poteto/fluentd-sidecar-injector/fluentd-sidecar-injector /fluentd-sidecar-injector
 
 CMD ["/fluentd-sidecar-injector"]
