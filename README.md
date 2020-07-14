@@ -240,8 +240,8 @@ You can use this value in your fluent.conf with config-volume option.
 | Name                | Default                   |
 | ------------------- | ------------------------- |
 | NODE_NAME           | `spec.nodeName`           |
-| POD_NAME            | `spec.name`               |
-| POD_NAMESPACE       | `spec.namespace`          |
+| POD_NAME            | `metadata.name`           |
+| POD_NAMESPACE       | `metadata.namespace`      |
 | POD_IP              | `status.podIP`            |
 | POD_SERVICE_ACCOUNT | `spec.serviceAccountName` |
 | CPU_RESOURCE        | `requests.cpu`            |
