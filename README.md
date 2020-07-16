@@ -205,16 +205,16 @@ Please specify these annotations to your pods like [this](example/deployment.yam
 
 - <a name="injection">`fluentd-sidecar-injector.h3poteto.dev/injection`<a/> specifies whether enable or disable this injector. Please specify `enabled` if you want to enable.
 - <a name="docker-image">`fluentd-sidecar-injector.h3poteto.dev/docker-image`</a> specifies sidecar docker image. Default is `h3poteto/fluentd-forward:latest`.
-- <a name="aggregator-host">`fluentd-sidecar-injector.h3poteto.dev/aggregator-host`</a> is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L37). Default docker image forward received logs to another fluentd host. This parameter is required.
-- <a name="aggregator-port">`fluentd-sidecar-injector.h3poteto.dev/aggregator-port`</a> is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L38). Default is `24224`.
+- <a name="aggregator-host">`fluentd-sidecar-injector.h3poteto.dev/aggregator-host`</a> is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L39). Default docker image forward received logs to another fluentd host. This parameter is required.
+- <a name="aggregator-port">`fluentd-sidecar-injector.h3poteto.dev/aggregator-port`</a> is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L40). Default is `24224`.
 - <a name="application-log-dir">`fluentd-sidecar-injector.h3poteto.dev/application-log-dir`</a> specifies log directory where fluentd will watch. This directory is share between application container and sidecar fluentd container using volume mounts. This parameter is required.
-- <a name="send-timeout">`fluentd-sidecar-injector.h3poteto.dev/send-timeout`</a> is send timeout of fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L14). Default is `60s`.
-- <a name="recover-wait">`fluentd-sidecar-injector.h3poteto.dev/recover-wait`</a> is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L15). Default is `10s`.
-- <a name="hard-timeout">`fluentd-sidecar-injector.h3poteto.dev/hard-timeout`</a> is timeout of fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L16). Default is `120s`.
-- <a name="tag-prefix">`fluentd-sidecar-injector.h3poteto.dev/tag-prefix`</a> is prefix of received log's tag. Default is `app`. It is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L9).
-- <a name="time-key">`fluentd-sidecar-injector.h3poteto.dev/time-key`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L6). Default is `time`.
-- <a name="time-format">`fluentd-sidecar-injector.h3poteto.dev/time-format`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L7). Default is `%Y-%m-%dT%H:%M:%S%z`.
-- <a name="log-format">`fluentd-sidecar-injector.h3poteto.dev/log-format`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L5). Default is `json`.
+- <a name="send-timeout">`fluentd-sidecar-injector.h3poteto.dev/send-timeout`</a> is send timeout of fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L16). Default is `60s`.
+- <a name="recover-wait">`fluentd-sidecar-injector.h3poteto.dev/recover-wait`</a> is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L17). Default is `10s`.
+- <a name="hard-timeout">`fluentd-sidecar-injector.h3poteto.dev/hard-timeout`</a> is timeout of fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L18). Default is `120s`.
+- <a name="tag-prefix">`fluentd-sidecar-injector.h3poteto.dev/tag-prefix`</a> is prefix of received log's tag. Default is `app`. It is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L5).
+- <a name="time-key">`fluentd-sidecar-injector.h3poteto.dev/time-key`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L9). Default is `time`.
+- <a name="time-format">`fluentd-sidecar-injector.h3poteto.dev/time-format`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L10). Default is `%Y-%m-%dT%H:%M:%S%z`.
+- <a name="log-format">`fluentd-sidecar-injector.h3poteto.dev/log-format`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L7). Default is `json`.
 - <a name="config-volume">`fluentd-sidecar-injector.h3poteto.dev/config-volume`</a> can read your own fluent.conf.
 - <a name="custom-env">`fluentd-sidecar-injector.h3poteto.dev/custom-env`</a> is an option that allows users to set their own values ​​in fluent.conf. Use with config-volume option.
 
