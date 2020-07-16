@@ -138,8 +138,10 @@ data:
       @type tail
       path "#{ENV['APPLICATION_LOG_DIR']}/*.access.log"
       pos_file /var/tmp/application.log.pos
-      format "ltsv"
       tag "app.*"
+      <parse>
+        @type ltsv
+      </parse>
     </source>
 
     <filter app.*>
