@@ -7,6 +7,11 @@ metadata:
     kind: mutator
 webhooks:
   - name: fluentd-sidecar-injector.h3poteto.dev
+    objectSelector:
+      matchExpressions:
+        - key: app
+          operator: NotIn
+          values: ["fluentd-sidecar-injector"]
     clientConfig:
       service:
         name: fluentd-sidecar-injector-webhook
