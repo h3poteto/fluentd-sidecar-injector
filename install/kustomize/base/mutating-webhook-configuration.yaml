@@ -23,3 +23,7 @@ webhooks:
         apiGroups: [""]
         apiVersions: ["v1"]
         resources: ["pods"]
+    sideEffects: None
+    # Now kubewebhook does not support v1 for admissionReviewVersions.
+    # https://github.com/slok/kubewebhook/issues/55
+    admissionReviewVersions: ["v1beta1"]
