@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/kelseyhightower/envconfig"
 	webhookhttp "github.com/slok/kubewebhook/pkg/http"
@@ -102,6 +103,11 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 				corev1.ResourceMemory: *resource.NewQuantity(1000*1024*1024, resource.BinarySI),
 			},
 		},
+	}
+
+	if value, ok := pod.Annotations[annotationPrefix+"/expose-port"]; ok {
+		port, _ := strconv.Atoi(value)
+		sidecar.Ports = []corev1.ContainerPort{{ContainerPort: int32(port)}}
 	}
 
 	// Override env with Pod's annotations.

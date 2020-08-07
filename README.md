@@ -202,6 +202,7 @@ Please specify these annotations to your pods like [this](example/deployment.yam
 | [fluentd-sidecar-injector.h3poteto.dev/log-format](#log-format)                   | optional | `json`                            |
 | [fluentd-sidecar-injector.h3poteto.dev/config-volume](#config-volume)             | optional | ""                                |
 | [fluentd-sidecar-injector.h3poteto.dev/custom-env](#custom-env)                   | optional | ""                                |
+| [fluentd-sidecar-injector.h3poteto.dev/expose-port](#expose-port)                 | optional | ""                                |
 
 - <a name="injection">`fluentd-sidecar-injector.h3poteto.dev/injection`<a/> specifies whether enable or disable this injector. Please specify `enabled` if you want to enable.
 - <a name="docker-image">`fluentd-sidecar-injector.h3poteto.dev/docker-image`</a> specifies sidecar docker image. Default is `h3poteto/fluentd-forward:latest`.
@@ -217,6 +218,7 @@ Please specify these annotations to your pods like [this](example/deployment.yam
 - <a name="log-format">`fluentd-sidecar-injector.h3poteto.dev/log-format`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L7). Default is `json`.
 - <a name="config-volume">`fluentd-sidecar-injector.h3poteto.dev/config-volume`</a> can read your own fluent.conf.
 - <a name="custom-env">`fluentd-sidecar-injector.h3poteto.dev/custom-env`</a> is an option that allows users to set their own values ​​in fluent.conf. Use with config-volume option.
+- <a name="expose-port">`fluentd-sidecar-injector.h3poteto.dev/expose-port`</a> is an option that users can set any port to expose fluentd container.
 
 ## Environment variables
 
