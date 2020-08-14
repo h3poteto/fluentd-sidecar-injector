@@ -8,5 +8,5 @@ require (
 	github.com/slok/kubewebhook v0.9.1
 	github.com/spf13/cobra v0.0.7
 	k8s.io/api v0.18.6
-	k8s.io/apimachinery v0.18.6
+	k8s.io/apimachinery v0.18.8
 )
