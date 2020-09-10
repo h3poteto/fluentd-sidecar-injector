@@ -7,6 +7,6 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/slok/kubewebhook v0.9.1
 	github.com/spf13/cobra v0.0.7
-	k8s.io/api v0.18.6
-	k8s.io/apimachinery v0.18.6
+	k8s.io/api v0.19.1
+	k8s.io/apimachinery v0.19.1
 )
