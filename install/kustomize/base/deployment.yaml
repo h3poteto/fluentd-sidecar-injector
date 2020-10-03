@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: fluentd-sidecar-injector
-          image: h3poteto/fluentd-sidecar-injector:latest
+          image: ghcr.io/h3poteto/fluentd-sidecar-injector:latest
           imagePullPolicy: Always
           args:
             - ./fluentd-sidecar-injector
