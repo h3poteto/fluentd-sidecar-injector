@@ -7,5 +7,5 @@ patches:
   - mutating-webhook-configuration.yaml
 
 imageTags:
-  - name: h3poteto/fluentd-sidecar-injector
-    newTag: v0.2.0
+  - name: ghcr.io/h3poteto/fluentd-sidecar-injector
+    newTag: latest
