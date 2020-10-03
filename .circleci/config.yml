@@ -3,7 +3,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: golang:1.13.7-alpine3.11
+      - image: golang:1.15.2-alpine3.12
     working_directory: /go/src/github.com/h3poteto/fluentd-sidecar-injector
     steps:
       - checkout
