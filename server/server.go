@@ -184,7 +184,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 		aggregatorHost = value
 	}
 
-	if len(aggregatorHost) == 0 {
+	if aggregatorHost == "" {
 		return false, errors.New("aggregator host is required")
 	}
 	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
@@ -197,7 +197,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 		aggregatorPort = value
 	}
 
-	if len(aggregatorPort) > 0 {
+	if aggregatorPort != "" {
 		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
 			Name:  "AGGREGATOR_PORT",
 			Value: aggregatorPort,
@@ -209,7 +209,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 		logFormat = value
 	}
 
-	if len(logFormat) > 0 {
+	if logFormat != "" {
 		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
 			Name:  "LOG_FORMAT",
 			Value: logFormat,
@@ -221,7 +221,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 		customEnv = value
 	}
 
-	if len(customEnv) > 0 {
+	if customEnv != "" {
 		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
 			Name:  "CUSTOM_ENV",
 			Value: customEnv,
@@ -232,7 +232,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 	if value, ok := pod.Annotations[annotationPrefix+"/application-log-dir"]; ok {
 		applicationLogDir = value
 	}
-	if len(applicationLogDir) == 0 {
+	if applicationLogDir != "" {
 		return false, errors.New("application log dir is required")
 	}
 	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
@@ -272,7 +272,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 	if value, ok := pod.Annotations[annotationPrefix+"/tag-prefix"]; ok {
 		tagPrefix = value
 	}
-	if len(tagPrefix) > 0 {
+	if tagPrefix != "" {
 		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
 			Name:  "TAG_PREFIX",
 			Value: tagPrefix,
@@ -283,7 +283,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 	if value, ok := pod.Annotations[annotationPrefix+"/time-key"]; ok {
 		timeKey = value
 	}
-	if len(timeKey) > 0 {
+	if timeKey != "" {
 		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
 			Name:  "TIME_KEY",
 			Value: timeKey,
@@ -375,7 +375,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 	if value, ok := pod.Annotations[annotationPrefix+"/time-format"]; ok {
 		timeFormat = value
 	}
-	if len(timeFormat) > 0 {
+	if timeFormat != "" {
 		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
 			Name:  "TIME_FORMAT",
 			Value: timeFormat,
@@ -460,7 +460,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 		aggregatorHost = value
 	}
 
-	if len(aggregatorHost) == 0 {
+	if aggregatorHost == "" {
 		return false, errors.New("aggregator host is required")
 	}
 	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
@@ -473,7 +473,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 		aggregatorPort = value
 	}
 
-	if len(aggregatorPort) > 0 {
+	if aggregatorPort != "" {
 		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
 			Name:  "AGGREGATOR_PORT",
 			Value: aggregatorPort,
@@ -485,7 +485,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 		customEnv = value
 	}
 
-	if len(customEnv) > 0 {
+	if customEnv != "" {
 		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
 			Name:  "CUSTOM_ENV",
 			Value: customEnv,
@@ -496,7 +496,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 	if value, ok := pod.Annotations[annotationPrefix+"/application-log-dir"]; ok {
 		applicationLogDir = value
 	}
-	if len(applicationLogDir) == 0 {
+	if applicationLogDir != "" {
 		return false, errors.New("application log dir is required")
 	}
 	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
@@ -536,7 +536,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 	if value, ok := pod.Annotations[annotationPrefix+"/tag-prefix"]; ok {
 		tagPrefix = value
 	}
-	if len(tagPrefix) > 0 {
+	if tagPrefix != "" {
 		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
 			Name:  "TAG_PREFIX",
 			Value: tagPrefix,
