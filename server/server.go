@@ -69,7 +69,7 @@ func StartServer(tlsCertFile, tlsKeyFile string) error {
 }
 
 // sidecarInjectMutator mutates requested pod definition to inject fluentd as sidecar.
-func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err error) {
+func sidecarInjectMutator(_ context.Context, obj metav1.Object) (bool, error) {
 	pod, ok := obj.(*corev1.Pod)
 
 	if !ok {
@@ -81,7 +81,10 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 	}
 
 	var generalEnv GeneralEnv
-	envconfig.Process("", &generalEnv)
+	err := envconfig.Process("", &generalEnv)
+	if err != nil {
+		return false, err
+	}
 
 	collector := generalEnv.Collector
 	if value, ok := pod.Annotations[annotationPrefix+"/collector"]; ok {
@@ -99,7 +102,10 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 
 func injectFluentD(pod *corev1.Pod) (bool, error) {
 	var fluentdEnv FluentDEnv
-	envconfig.Process("fluentd", &fluentdEnv)
+	err := envconfig.Process("fluentd", &fluentdEnv)
+	if err != nil {
+		return false, err
+	}
 
 	dockerImage := fluentdEnv.DockerImage
 	if value, ok := pod.Annotations[annotationPrefix+"/docker-image"]; ok {
