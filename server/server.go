@@ -22,7 +22,7 @@ const containerName = "fluentd-sidecar"
 
 // Env is required environment variables to run this server.
 type Env struct {
-	DockerImage       string `envconfig:"DOCKER_IMAGE" default:"h3poteto/fluentd-forward:latest"`
+	DockerImage       string `envconfig:"DOCKER_IMAGE" default:"ghcr.io/h3poteto/fluentd-forward:latest"`
 	ApplicationLogDir string `envconfig:"APPLICATION_LOG_DIR"`
 	TimeFormat        string `envconfig:"TIME_FORMAT" default:"%Y-%m-%dT%H:%M:%S%z"`
 	TimeKey           string `envconfig:"TIME_KEY" default:"time"`

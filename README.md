@@ -68,8 +68,8 @@ Containers:
       /var/run/secrets/kubernetes.io/serviceaccount from default-token-8rcns (ro)
   fluentd-sidecar:
     Container ID:   docker://49503c3836fa5ebc40c55db3717f16f21fbdbfaae8859a8ed8a366d04a2b6d9b
-    Image:          h3poteto/fluentd-forward:latest
-    Image ID:       docker-pullable://h3poteto/fluentd-forward@sha256:5d93af333ad9fefbfcb8013d20834fd89c2bbd3fe8b9b9bfa620ded29d7b3205
+    Image:          ghcr.io/h3poteto/fluentd-forward:latest
+    Image ID:       docker-pullable://ghcr.io/h3poteto/fluentd-forward@sha256:5d93af333ad9fefbfcb8013d20834fd89c2bbd3fe8b9b9bfa620ded29d7b3205
     Port:           <none>
     Host Port:      <none>
     State:          Running
@@ -92,7 +92,7 @@ Containers:
 
 ### Custom fluent.conf
 
-If you need to use your own fluent.conf, use config-volume option.  
+If you need to use your own fluent.conf, use config-volume option.
 The following yaml has fluent-conf configmap. It will be mounted on `/fluentd/etc/fluent/fluent.conf`.
 
 ```yaml
@@ -189,7 +189,7 @@ Please specify these annotations to your pods like [this](example/deployment.yam
 | Name                                                                              | Required | Default                           |
 | --------------------------------------------------------------------------------- | -------- | --------------------------------- |
 | [fluentd-sidecar-injector.h3poteto.dev/injection](#injection)                     | optional | ""                                |
-| [fluentd-sidecar-injector.h3poteto.dev/docker-image](#docker-image)               | optional | `h3poteto/fluentd-forward:latest` |
+| [fluentd-sidecar-injector.h3poteto.dev/docker-image](#docker-image)               | optional | `ghcr.io/h3poteto/fluentd-forward:latest` |
 | [fluentd-sidecar-injector.h3poteto.dev/aggregator-host](#aggregator-host)         | required | ""                                |
 | [fluentd-sidecar-injector.h3poteto.dev/aggregator-port](#aggregator-port)         | optional | `24224`                           |
 | [fluentd-sidecar-injector.h3poteto.dev/application-log-dir](#application-log-dir) | required | ""                                |
@@ -205,7 +205,7 @@ Please specify these annotations to your pods like [this](example/deployment.yam
 | [fluentd-sidecar-injector.h3poteto.dev/expose-port](#expose-port)                 | optional | ""                                |
 
 - <a name="injection">`fluentd-sidecar-injector.h3poteto.dev/injection`<a/> specifies whether enable or disable this injector. Please specify `enabled` if you want to enable.
-- <a name="docker-image">`fluentd-sidecar-injector.h3poteto.dev/docker-image`</a> specifies sidecar docker image. Default is `h3poteto/fluentd-forward:latest`.
+- <a name="docker-image">`fluentd-sidecar-injector.h3poteto.dev/docker-image`</a> specifies sidecar docker image. Default is `ghcr.io/h3poteto/fluentd-forward:latest`.
 - <a name="aggregator-host">`fluentd-sidecar-injector.h3poteto.dev/aggregator-host`</a> is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L39). Default docker image forward received logs to another fluentd host. This parameter is required.
 - <a name="aggregator-port">`fluentd-sidecar-injector.h3poteto.dev/aggregator-port`</a> is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L40). Default is `24224`.
 - <a name="application-log-dir">`fluentd-sidecar-injector.h3poteto.dev/application-log-dir`</a> specifies log directory where fluentd will watch. This directory is share between application container and sidecar fluentd container using volume mounts. This parameter is required.
@@ -226,7 +226,7 @@ If you use same parameters for all sidecar fluentd containers which are injected
 
 | Name                                                | Default                           |
 | --------------------------------------------------- | --------------------------------- |
-| [FLUENTD_DOCKER_IMAGE](#docker-image)               | `h3poteto/fluentd-forward:latest` |
+| [FLUENTD_DOCKER_IMAGE](#docker-image)               | `ghcr.io/h3poteto/fluentd-forward:latest` |
 | [FLUENTD_AGGREGATOR_HOST](#aggregator-host)         | ""                                |
 | [FLUENTD_AGGREGATOR_PORT](#aggregator-port)         | `24224`                           |
 | [FLUENTD_APPLICATION_LOG_DIR](#application-log-dir) | ""                                |
@@ -238,7 +238,7 @@ Note: these parameters will be overrided with Pod annotations if you set.
 
 ### Fixed environment variables
 
-The following values ​​will be set for each fluentd-sidecar.  
+The following values ​​will be set for each fluentd-sidecar.
 You can use this value in your fluent.conf with config-volume option.
 
 | Name                | Default                   |
