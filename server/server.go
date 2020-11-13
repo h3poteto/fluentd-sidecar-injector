@@ -38,6 +38,15 @@ type FluentDEnv struct {
 	CustomEnv         string `envconfig:"CUSTOM_ENV"`
 }
 
+type FluentBitEnv struct {
+	DockerImage       string `envconfig:"DOCKER_IMAGE" default:"ghcr.io/h3poteto/fluentbit-forward:latest"`
+	ApplicationLogDir string `envconfig:"APPLICATION_LOG_DIR"`
+	TagPrefix         string `envconfig:"TAG_PREFIX" defalt:"app"`
+	AggregatorHost    string `envconfig:"AGGREGATOR_HOST"`
+	AggregatorPort    string `envconfig:"AGGREGATOR_PORT" default:"24224"`
+	CustomEnv         string `envconfig:"CUSTOM_ENV"`
+}
+
 // StartServer run webhook server.
 func StartServer(tlsCertFile, tlsKeyFile string) error {
 	logger := &log.Std{Debug: true}
@@ -69,6 +78,8 @@ func StartServer(tlsCertFile, tlsKeyFile string) error {
 }
 
 // sidecarInjectMutator mutates requested pod definition to inject fluentd as sidecar.
+// This function retunrs bool, and error to detect stop applying.
+// If return false, API server does not stop applygin. But if return true, API server stop applygin, and say errors to kubectl.
 func sidecarInjectMutator(_ context.Context, obj metav1.Object) (bool, error) {
 	pod, ok := obj.(*corev1.Pod)
 
@@ -94,7 +105,7 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (bool, error) {
 	case "fluentd", "":
 		return injectFluentD(pod)
 	case "fluent-bit":
-		return false, errors.New("No implemented for fluent-bit")
+		return injectFluentBit(pod)
 	default:
 		return false, fmt.Errorf("collector must be fluentd or fluent-bit, %s is not matched", collector)
 	}
@@ -370,6 +381,248 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 			Value: timeFormat,
 		})
 	}
+
+	// Inject volume mount for all containers in the pod.
+	var containers []corev1.Container
+
+	for _, container := range pod.Spec.Containers {
+		container.VolumeMounts = append(container.VolumeMounts, volumeMount)
+		containers = append(containers, container)
+	}
+	containers = append(containers, sidecar)
+
+	pod.Spec.Containers = containers
+
+	return false, nil
+}
+
+func injectFluentBit(pod *corev1.Pod) (bool, error) {
+	var fluentBitEnv FluentBitEnv
+	err := envconfig.Process("fluentbit", &fluentBitEnv)
+	if err != nil {
+		return false, err
+	}
+
+	dockerImage := fluentBitEnv.DockerImage
+	if value, ok := pod.Annotations[annotationPrefix+"/docker-image"]; ok {
+		dockerImage = value
+	}
+
+	volumeName := "fluentd-sidecar-injector-logs"
+	pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
+		Name: volumeName,
+		VolumeSource: corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
+		},
+	})
+
+	sidecar := corev1.Container{
+		Name:  containerName,
+		Image: dockerImage,
+		Resources: corev1.ResourceRequirements{
+			Requests: map[corev1.ResourceName]resource.Quantity{
+				corev1.ResourceMemory: *resource.NewQuantity(200*1024*1024, resource.BinarySI),
+				corev1.ResourceCPU:    *resource.NewMilliQuantity(100, resource.DecimalSI),
+			},
+			Limits: map[corev1.ResourceName]resource.Quantity{
+				corev1.ResourceMemory: *resource.NewQuantity(1000*1024*1024, resource.BinarySI),
+			},
+		},
+	}
+
+	if value, ok := pod.Annotations[annotationPrefix+"/expose-port"]; ok {
+		port, _ := strconv.Atoi(value)
+		sidecar.Ports = []corev1.ContainerPort{{ContainerPort: int32(port)}}
+	}
+
+	// Override env with Pod's annotations.
+	refreshInterval := "60"
+	if value, ok := pod.Annotations[annotationPrefix+"/refresh-interval"]; ok {
+		refreshInterval = value
+	}
+	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+		Name:  "REFRESH_INTERVAL",
+		Value: refreshInterval,
+	})
+
+	rotateWait := "5"
+	if value, ok := pod.Annotations[annotationPrefix+"/rotate-wait"]; ok {
+		rotateWait = value
+	}
+	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+		Name:  "ROTATE_WAIT",
+		Value: rotateWait,
+	})
+
+	// Override env with fluentBitEnv and Pod's annotations.
+	aggregatorHost := fluentBitEnv.AggregatorHost
+	if value, ok := pod.Annotations[annotationPrefix+"/aggregator-host"]; ok {
+		aggregatorHost = value
+	}
+
+	if len(aggregatorHost) == 0 {
+		return false, errors.New("aggregator host is required")
+	}
+	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+		Name:  "AGGREGATOR_HOST",
+		Value: aggregatorHost,
+	})
+
+	aggregatorPort := fluentBitEnv.AggregatorPort
+	if value, ok := pod.Annotations[annotationPrefix+"/aggregator-port"]; ok {
+		aggregatorPort = value
+	}
+
+	if len(aggregatorPort) > 0 {
+		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+			Name:  "AGGREGATOR_PORT",
+			Value: aggregatorPort,
+		})
+	}
+
+	customEnv := fluentBitEnv.CustomEnv
+	if value, ok := pod.Annotations[annotationPrefix+"/custom-env"]; ok {
+		customEnv = value
+	}
+
+	if len(customEnv) > 0 {
+		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+			Name:  "CUSTOM_ENV",
+			Value: customEnv,
+		})
+	}
+
+	applicationLogDir := fluentBitEnv.ApplicationLogDir
+	if value, ok := pod.Annotations[annotationPrefix+"/application-log-dir"]; ok {
+		applicationLogDir = value
+	}
+	if len(applicationLogDir) == 0 {
+		return false, errors.New("application log dir is required")
+	}
+	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+		Name:  "APPLICATION_LOG_DIR",
+		Value: applicationLogDir,
+	})
+
+	volumeMount := corev1.VolumeMount{
+		Name:      volumeName,
+		ReadOnly:  false,
+		MountPath: applicationLogDir,
+	}
+	sidecar.VolumeMounts = []corev1.VolumeMount{
+		volumeMount,
+	}
+
+	mountsCnt := len(sidecar.VolumeMounts)
+	if value, ok := pod.Annotations[annotationPrefix+"/config-volume"]; ok {
+		volumes := pod.Spec.Volumes
+		for i := range volumes {
+			if name := volumes[i].Name; name == value {
+				sidecar.VolumeMounts = append(sidecar.VolumeMounts, corev1.VolumeMount{
+					Name:      name,
+					MountPath: "/fluent-bit/etc/fluent-bit.conf",
+					SubPath:   "fluent-bit.conf",
+				})
+				break
+			}
+		}
+
+		if mountsCnt == len(sidecar.VolumeMounts) {
+			return false, errors.New("config volume does not exist")
+		}
+	}
+
+	tagPrefix := fluentBitEnv.TagPrefix
+	if value, ok := pod.Annotations[annotationPrefix+"/tag-prefix"]; ok {
+		tagPrefix = value
+	}
+	if len(tagPrefix) > 0 {
+		sidecar.Env = append(sidecar.Env, corev1.EnvVar{
+			Name:  "TAG_PREFIX",
+			Value: tagPrefix,
+		})
+	}
+
+	// Add Downward API
+	// ref: https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/#the-downward-api
+	sidecar.Env = append(sidecar.Env,
+		corev1.EnvVar{
+			Name: "NODE_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "spec.nodeName",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "POD_NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "POD_SERVICE_ACCOUNT",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "spec.serviceAccountName",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "CPU_REQUEST",
+			ValueFrom: &corev1.EnvVarSource{
+				ResourceFieldRef: &corev1.ResourceFieldSelector{
+					ContainerName: containerName,
+					Resource:      "requests.cpu",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "CPU_LIMIT",
+			ValueFrom: &corev1.EnvVarSource{
+				ResourceFieldRef: &corev1.ResourceFieldSelector{
+					ContainerName: containerName,
+					Resource:      "limits.cpu",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "MEM_REQUEST",
+			ValueFrom: &corev1.EnvVarSource{
+				ResourceFieldRef: &corev1.ResourceFieldSelector{
+					ContainerName: containerName,
+					Resource:      "requests.memory",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "MEM_LIMIT",
+			ValueFrom: &corev1.EnvVarSource{
+				ResourceFieldRef: &corev1.ResourceFieldSelector{
+					ContainerName: containerName,
+					Resource:      "limits.memory",
+				},
+			},
+		},
+	)
 
 	// Inject volume mount for all containers in the pod.
 	var containers []corev1.Container
