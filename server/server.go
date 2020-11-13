@@ -625,15 +625,10 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 	)
 
 	// Inject volume mount for all containers in the pod.
-	var containers []corev1.Container
-
-	for _, container := range pod.Spec.Containers {
+	for i := range pod.Spec.Containers {
+		container := &pod.Spec.Containers[i]
 		container.VolumeMounts = append(container.VolumeMounts, volumeMount)
-		containers = append(containers, container)
 	}
-	containers = append(containers, sidecar)
-
-	pod.Spec.Containers = containers
 
 	return false, nil
 }
