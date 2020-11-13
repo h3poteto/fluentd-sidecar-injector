@@ -26,7 +26,7 @@ spec:
           env:
           # These parameters can be overrided by Pod's annotations.
             - name: FLUENTD_DOCKER_IMAGE
-              value: h3poteto/fluentd-forward:latest
+              value: ghcr.io/h3poteto/fluentd-forward:latest:latest
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
