@@ -81,7 +81,7 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 	}
 
 	var generalEnv GeneralEnv
-	envconfig.Process("general", &generalEnv)
+	envconfig.Process("", &generalEnv)
 
 	collector := generalEnv.Collector
 	if value, ok := pod.Annotations[annotationPrefix+"/collector"]; ok {
