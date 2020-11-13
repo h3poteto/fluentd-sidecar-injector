@@ -20,8 +20,13 @@ var annotationPrefix = "fluentd-sidecar-injector.h3poteto.dev"
 
 const containerName = "fluentd-sidecar"
 
-// Env is required environment variables to run this server.
-type Env struct {
+// GeneralEnv is required environment variables to run this server.
+type GeneralEnv struct {
+	Collector string `envconfig:"COLLECTOR" default:"fluentd"`
+}
+
+// FluentDEnv is required environment variables for fluentd settings.
+type FluentDEnv struct {
 	DockerImage       string `envconfig:"DOCKER_IMAGE" default:"ghcr.io/h3poteto/fluentd-forward:latest"`
 	ApplicationLogDir string `envconfig:"APPLICATION_LOG_DIR"`
 	TimeFormat        string `envconfig:"TIME_FORMAT" default:"%Y-%m-%dT%H:%M:%S%z"`
@@ -75,7 +80,25 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (stop bool, err 
 		return false, nil
 	}
 
-	var fluentdEnv Env
+	var generalEnv GeneralEnv
+	envconfig.Process("general", &generalEnv)
+
+	collector := generalEnv.Collector
+	if value, ok := pod.Annotations[annotationPrefix+"/collector"]; ok {
+		collector = value
+	}
+	switch collector {
+	case "fluentd", "":
+		return injectFluentD(pod)
+	case "fluent-bit":
+		return false, errors.New("No implemented for fluent-bit")
+	default:
+		return false, fmt.Errorf("collector must be fluentd or fluent-bit, %s is not matched", collector)
+	}
+}
+
+func injectFluentD(pod *corev1.Pod) (bool, error) {
+	var fluentdEnv FluentDEnv
 	envconfig.Process("fluentd", &fluentdEnv)
 
 	dockerImage := fluentdEnv.DockerImage
