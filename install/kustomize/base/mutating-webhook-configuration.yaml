@@ -7,6 +7,7 @@ metadata:
     kind: mutator
 webhooks:
   - name: fluentd-sidecar-injector.h3poteto.dev
+    matchPolicy: Equivalent
     objectSelector:
       matchExpressions:
         - key: app
@@ -23,7 +24,9 @@ webhooks:
         apiGroups: [""]
         apiVersions: ["v1"]
         resources: ["pods"]
+        scope: "*"
     sideEffects: None
+    timeoutSeconds: 30
     # Now kubewebhook does not support v1 for admissionReviewVersions.
     # https://github.com/slok/kubewebhook/issues/55
     admissionReviewVersions: ["v1beta1"]

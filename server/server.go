@@ -47,9 +47,11 @@ type FluentBitEnv struct {
 	CustomEnv         string `envconfig:"CUSTOM_ENV"`
 }
 
+var logger = &log.Std{}
+
 // StartServer run webhook server.
 func StartServer(tlsCertFile, tlsKeyFile string) error {
-	logger := &log.Std{Debug: true}
+	logger = &log.Std{Debug: true}
 
 	mutator := mutating.MutatorFunc(sidecarInjectMutator)
 
@@ -81,13 +83,16 @@ func StartServer(tlsCertFile, tlsKeyFile string) error {
 // This function retunrs bool, and error to detect stop applying.
 // If return false, API server does not stop applygin. But if return true, API server stop applygin, and say errors to kubectl.
 func sidecarInjectMutator(_ context.Context, obj metav1.Object) (bool, error) {
-	pod, ok := obj.(*corev1.Pod)
+	logger.Debugf("Receive request")
 
+	pod, ok := obj.(*corev1.Pod)
 	if !ok {
 		return false, nil
 	}
+	logger.Debugf("Receive pod: %#v", pod)
 
 	if pod.Annotations[annotationPrefix+"/injection"] != "enabled" {
+		logger.Debugf("Skip injector because annotation is not specified")
 		return false, nil
 	}
 
@@ -232,7 +237,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 	if value, ok := pod.Annotations[annotationPrefix+"/application-log-dir"]; ok {
 		applicationLogDir = value
 	}
-	if applicationLogDir != "" {
+	if applicationLogDir == "" {
 		return false, errors.New("application log dir is required")
 	}
 	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
@@ -496,7 +501,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 	if value, ok := pod.Annotations[annotationPrefix+"/application-log-dir"]; ok {
 		applicationLogDir = value
 	}
-	if applicationLogDir != "" {
+	if applicationLogDir == "" {
 		return false, errors.New("application log dir is required")
 	}
 	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
