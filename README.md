@@ -4,11 +4,11 @@
 
 # fluentd-sidecar-injector
 
-`fluentd-sidecar-injector` is a webhook server for kubernetes admission webhook. This server inject fluentd container as sidecar for specified Pod using mutation webhook. The feature is
+`fluentd-sidecar-injector` is a webhook server for kubernetes admission webhook. This server inject fluentd or fluent-bit container as sidecar for specified Pod using mutation webhook. The feature is
 
 - Automatically sidecar injection
 - You can control injection using Pod's annotations
-- You can change fluentd docker image to be injected
+- You can change fluentd or fluent-bit docker image to be injected
 
 ## Usage
 
@@ -245,13 +245,21 @@ If you use same parameters for all sidecar fluentd containers which are injected
 
 | Name                                                | Default                           |
 | --------------------------------------------------- | --------------------------------- |
+| [COLLECTOR](#collector)                              | `fluentd`                          |
 | [FLUENTD_DOCKER_IMAGE](#docker-image)               | `ghcr.io/h3poteto/fluentd-forward:latest` |
 | [FLUENTD_AGGREGATOR_HOST](#aggregator-host)         | ""                                |
 | [FLUENTD_AGGREGATOR_PORT](#aggregator-port)         | `24224`                           |
 | [FLUENTD_APPLICATION_LOG_DIR](#application-log-dir) | ""                                |
-| [FLUENTD_TAG_PREFIX](#tag-prefix)                   | `app`                             |
+| [FLUENTD_TAG_PREFIX](#tag-prefix)                   | ""                             |
 | [FLUENTD_TIME_KEY](#time-key)                       | `time`                            |
 | [FLUENTD_TIME_FORMAT](#time-format)                 | `%Y-%m-%dT%H:%M:%S%z`             |
+| [FLUENTD_CUSTOM_ENV](#custom-env)                   | ""                                |
+| [FLUENTBIT_DOCKER_IMAGE](#docker-image)              | `ghcr.io/h3poteto/fluentbit-forward:latest` |
+| [FLUENTBIT_AGGREGATOR_HOST](#aggregator-host)         | ""                                |
+| [FLUENTBIT_AGGREGATOR_PORT](#aggregator-port)         | `24224`                           |
+| [FLUENTBIT_APPLICATION_LOG_DIR](#application-log-dir) | ""                                |
+| [FLUENTBIT_TAG_PREFIX](#tag-prefix)                   | ""                             |
+| [FLUENTBIT_CUSTOM_ENV](#custom-env)                   | ""                                |
 
 Note: these parameters will be overrided with Pod annotations if you set.
 
