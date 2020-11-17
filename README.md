@@ -31,6 +31,7 @@ spec:
       annotations:
         fluentd-sidecar-injector.h3poteto.dev/injection: 'enabled'
         fluentd-sidecar-injector.h3poteto.dev/application-log-dir: '/var/log/nginx'
+        fluentd-sidecar-injector.h3poteto.dev/collector: 'fluentd'
       labels:
         app: nginx-test
     spec:
@@ -111,6 +112,7 @@ spec:
     metadata:
       annotations:
         fluentd-sidecar-injector.h3poteto.dev/injection: 'enabled'
+        fluentd-sidecar-injector.h3poteto.dev/collector: 'fluentd'
         fluentd-sidecar-injector.h3poteto.dev/docker-image: 'fluent/fluentd:latest'
         fluentd-sidecar-injector.h3poteto.dev/application-log-dir: '/var/log/nginx'
         fluentd-sidecar-injector.h3poteto.dev/aggregator-host: 'fluentd.example.com'
@@ -190,35 +192,52 @@ Please specify these annotations to your pods like [this](example/deployment.yam
 | --------------------------------------------------------------------------------- | -------- | --------------------------------- |
 | [fluentd-sidecar-injector.h3poteto.dev/injection](#injection)                     | optional | ""                                |
 | [fluentd-sidecar-injector.h3poteto.dev/docker-image](#docker-image)               | optional | `ghcr.io/h3poteto/fluentd-forward:latest` |
+| [fluentd-sidecar-injector.h3poteto.dev/collector](#collector)                     | optional | `fluentd`                         |
 | [fluentd-sidecar-injector.h3poteto.dev/aggregator-host](#aggregator-host)         | required | ""                                |
 | [fluentd-sidecar-injector.h3poteto.dev/aggregator-port](#aggregator-port)         | optional | `24224`                           |
 | [fluentd-sidecar-injector.h3poteto.dev/application-log-dir](#application-log-dir) | required | ""                                |
+| [fluentd-sidecar-injector.h3poteto.dev/tag-prefix](#tag-prefix)                   | optional | ""                             |
+| [fluentd-sidecar-injector.h3poteto.dev/custom-env](#custom-env)                   | optional | ""                                |
+| [fluentd-sidecar-injector.h3poteto.dev/expose-port](#expose-port)                 | optional | ""                                |
+| [fluentd-sidecar-injector.h3poteto.dev/config-volume](#config-volume)             | optional | ""                                |
+
+These annotations are used when `collector` is `fluentd`.
+
+| Name                                                                             | Required | Default                           |
+| ---------------------------------------------------------------------------------| -------- | --------------------------------- |
 | [fluentd-sidecar-injector.h3poteto.dev/send-timeout](#send-timeout)               | optional | `60s`                             |
 | [fluentd-sidecar-injector.h3poteto.dev/recover-wait](#recover-wait)               | optional | `10s`                             |
 | [fluentd-sidecar-injector.h3poteto.dev/hard-timeout](#hard-timeout)               | optional | `120s`                            |
-| [fluentd-sidecar-injector.h3poteto.dev/tag-prefix](#tag-prefix)                   | optional | `app`                             |
 | [fluentd-sidecar-injector.h3poteto.dev/time-key](#time-key)                       | optional | `time`                            |
 | [fluentd-sidecar-injector.h3poteto.dev/time-format](#time-format)                 | optional | `%Y-%m-%dT%H:%M:%S%z`             |
 | [fluentd-sidecar-injector.h3poteto.dev/log-format](#log-format)                   | optional | `json`                            |
-| [fluentd-sidecar-injector.h3poteto.dev/config-volume](#config-volume)             | optional | ""                                |
-| [fluentd-sidecar-injector.h3poteto.dev/custom-env](#custom-env)                   | optional | ""                                |
-| [fluentd-sidecar-injector.h3poteto.dev/expose-port](#expose-port)                 | optional | ""                                |
+
+
+These annotations are used when `collector` is `fluent-bit`.
+
+| Name                                                                             | Required | Default                           |
+| ---------------------------------------------------------------------------------| -------- | --------------------------------- |
+| [fluentd-sidecar-injector.h3poteto.dev/refresh-interval](#refresh-interval)        | optional | `60`                              |
+| [fluentd-sidecar-injector.h3poteto.dev/rotate-wait](#rotate-wait)                 | optional | `5`                               |
 
 - <a name="injection">`fluentd-sidecar-injector.h3poteto.dev/injection`<a/> specifies whether enable or disable this injector. Please specify `enabled` if you want to enable.
 - <a name="docker-image">`fluentd-sidecar-injector.h3poteto.dev/docker-image`</a> specifies sidecar docker image. Default is `ghcr.io/h3poteto/fluentd-forward:latest`.
+- <a name="collector">`fluentd-sidecar-injector.h3poteto.dev/collector`</a> specifies collector name which is `fluentd` or `fluent-bit`. Default is `fluentd`. Specified collector is injected you pods.
 - <a name="aggregator-host">`fluentd-sidecar-injector.h3poteto.dev/aggregator-host`</a> is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L39). Default docker image forward received logs to another fluentd host. This parameter is required.
 - <a name="aggregator-port">`fluentd-sidecar-injector.h3poteto.dev/aggregator-port`</a> is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L40). Default is `24224`.
 - <a name="application-log-dir">`fluentd-sidecar-injector.h3poteto.dev/application-log-dir`</a> specifies log directory where fluentd will watch. This directory is share between application container and sidecar fluentd container using volume mounts. This parameter is required.
+- <a name="tag-prefix">`fluentd-sidecar-injector.h3poteto.dev/tag-prefix`</a> is prefix of received log's tag. It is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L5).
+- <a name="config-volume">`fluentd-sidecar-injector.h3poteto.dev/config-volume`</a> can read your own fluent.conf. If you specify `collector` to `fluent-bit`, `fluent-bit.conf` is read.
+- <a name="custom-env">`fluentd-sidecar-injector.h3poteto.dev/custom-env`</a> is an option that allows users to set their own values ​​in fluent.conf. Use with config-volume option.
+- <a name="expose-port">`fluentd-sidecar-injector.h3poteto.dev/expose-port`</a> is an option that users can set any port to expose fluentd container.
 - <a name="send-timeout">`fluentd-sidecar-injector.h3poteto.dev/send-timeout`</a> is send timeout of fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L16). Default is `60s`.
 - <a name="recover-wait">`fluentd-sidecar-injector.h3poteto.dev/recover-wait`</a> is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L17). Default is `10s`.
 - <a name="hard-timeout">`fluentd-sidecar-injector.h3poteto.dev/hard-timeout`</a> is timeout of fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L18). Default is `120s`.
-- <a name="tag-prefix">`fluentd-sidecar-injector.h3poteto.dev/tag-prefix`</a> is prefix of received log's tag. Default is `app`. It is used in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L5).
 - <a name="time-key">`fluentd-sidecar-injector.h3poteto.dev/time-key`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L9). Default is `time`.
 - <a name="time-format">`fluentd-sidecar-injector.h3poteto.dev/time-format`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L10). Default is `%Y-%m-%dT%H:%M:%S%z`.
 - <a name="log-format">`fluentd-sidecar-injector.h3poteto.dev/log-format`</a> is fluentd configuration in [here](https://github.com/h3poteto/docker-fluentd-forward/blob/master/fluent.conf#L7). Default is `json`.
-- <a name="config-volume">`fluentd-sidecar-injector.h3poteto.dev/config-volume`</a> can read your own fluent.conf.
-- <a name="custom-env">`fluentd-sidecar-injector.h3poteto.dev/custom-env`</a> is an option that allows users to set their own values ​​in fluent.conf. Use with config-volume option.
-- <a name="expose-port">`fluentd-sidecar-injector.h3poteto.dev/expose-port`</a> is an option that users can set any port to expose fluentd container.
+- <a name="refresh-interval">`fluentd-sidecar-injector.h3poteto.dev/refresh-interval`</a> is fluent-bit configuration in [hrere](https://github.com/h3poteto/docker-fluentbit-forward/blob/master/fluent-bit.conf#L11). Default is `60` second.
+- <a name="rotate-wait">`fluentd-sidecar-injector.h3poteto.dev/rotate-wait`</a> is fluent-bit configuration in [here](https://github.com/h3poteto/docker-fluentbit-forward/blob/master/fluent-bit.conf#L12). Default is `5` second.
 
 ## Environment variables
 
