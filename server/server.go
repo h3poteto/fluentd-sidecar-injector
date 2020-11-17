@@ -634,6 +634,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 		container := &pod.Spec.Containers[i]
 		container.VolumeMounts = append(container.VolumeMounts, volumeMount)
 	}
+	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 
 	return false, nil
 }
