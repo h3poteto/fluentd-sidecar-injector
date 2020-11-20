@@ -1,4 +1,4 @@
-package server
+package webhook
 
 import (
 	"context"
