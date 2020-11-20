@@ -1,20 +1,20 @@
 package cmd
 
 import (
-	"github.com/h3poteto/fluentd-sidecar-injector/server"
+	"github.com/h3poteto/fluentd-sidecar-injector/pkg/webhook"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-type serverOption struct {
+type webhookOption struct {
 	tlsCertFile string
 	tlsKeyFile  string
 }
 
-func serverCmd() *cobra.Command {
-	s := &serverOption{}
+func webhookCmd() *cobra.Command {
+	s := &webhookOption{}
 	cmd := &cobra.Command{
-		Use:   "server",
+		Use:   "webhook",
 		Short: "Start webhook server",
 		Run:   s.run,
 	}
@@ -25,7 +25,7 @@ func serverCmd() *cobra.Command {
 	return cmd
 }
 
-func (o *serverOption) run(cmd *cobra.Command, args []string) {
+func (o *webhookOption) run(cmd *cobra.Command, args []string) {
 	if o.tlsCertFile == "" {
 		logrus.Fatal("tls-cert-file is required parameter")
 	}
@@ -33,7 +33,7 @@ func (o *serverOption) run(cmd *cobra.Command, args []string) {
 		logrus.Fatal("tls-key-file is required parameter")
 	}
 
-	if err := server.StartServer(o.tlsCertFile, o.tlsKeyFile); err != nil {
+	if err := webhook.StartServer(o.tlsCertFile, o.tlsKeyFile); err != nil {
 		logrus.Fatal(err)
 	}
 }
