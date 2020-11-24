@@ -41,6 +41,9 @@ spec:
                 default: fluentd
                 description: Default collector name which you want to inject. The
                   name must be fluentd or fluent-bit. Default is fluentd.
+                enum:
+                - fluentd
+                - fluent-bit
                 type: string
               fluentbit:
                 description: Please specify this argument when you specify fluent-bit

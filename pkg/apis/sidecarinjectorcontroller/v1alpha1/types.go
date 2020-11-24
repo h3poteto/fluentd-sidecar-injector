@@ -20,16 +20,17 @@ type SidecarInjectorSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Type:=string
 	// +kubebuilder:default=fluentd
+	// +kubebuilder:validation:Enum=fluentd;fluent-bit
 	// Default collector name which you want to inject. The name must be fluentd or fluent-bit. Default is fluentd.
 	Collector string `json:"collector"`
 	// +optional
 	// +nullable
 	// Please specify this argument when you specify fluentd as collector.
-	FluentD FluentDSpec `json:"fluentd"`
+	FluentD *FluentDSpec `json:"fluentd"`
 	// +optional
 	// +nullable
 	// Please specify this argument when you specify fluent-bit as collector
-	FluentBit FluentBitSpec `json:"fluentbit"`
+	FluentBit *FluentBitSpec `json:"fluentbit"`
 }
 
 // SdecarInjectorStatus defines the observed state of SidecarInjector

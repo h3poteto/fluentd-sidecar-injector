@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -28,6 +29,100 @@ const (
 )
 
 func newDeployment(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, secretName string) *appsv1.Deployment {
+	env := []corev1.EnvVar{
+		{
+			Name:  "COLLECTOR",
+			Value: sidecarInjector.Spec.Collector,
+		},
+	}
+	if sidecarInjector.Spec.FluentD != nil {
+		if sidecarInjector.Spec.FluentD.DockerImage != "" {
+			env = append(env, corev1.EnvVar{
+				Name:  "FLUENTD_DOCKER_IMAGE",
+				Value: sidecarInjector.Spec.FluentD.DockerImage,
+			})
+		}
+		if sidecarInjector.Spec.FluentD.AggregatorHost != "" {
+			env = append(env, corev1.EnvVar{
+				Name:  "FLUENTD_AGGREGATOR_HOST",
+				Value: sidecarInjector.Spec.FluentD.AggregatorHost,
+			})
+		}
+		if sidecarInjector.Spec.FluentD.AggregatorPort != 0 {
+			env = append(env, corev1.EnvVar{
+				Name:  "FLUENTD_AGGREGATOR_PORT",
+				Value: fmt.Sprintf("%d", sidecarInjector.Spec.FluentD.AggregatorPort),
+			})
+		}
+		if sidecarInjector.Spec.FluentD.ApplicationLogDir != "" {
+			env = append(env, corev1.EnvVar{
+				Name:  "FLUENTD_APPLICATION_LOG_DIR",
+				Value: sidecarInjector.Spec.FluentD.ApplicationLogDir,
+			})
+		}
+		if sidecarInjector.Spec.FluentD.TagPrefix != "" {
+			env = append(env, corev1.EnvVar{
+				Name:  "FLUENTD_TAG_PREFIX",
+				Value: sidecarInjector.Spec.FluentD.TagPrefix,
+			})
+		}
+		if sidecarInjector.Spec.FluentD.TimeKey != "" {
+			env = append(env, corev1.EnvVar{
+				Name:  "FLUENTD_TIME_KEY",
+				Value: sidecarInjector.Spec.FluentD.TimeKey,
+			})
+		}
+		if sidecarInjector.Spec.FluentD.TimeFormat != "" {
+			env = append(env, corev1.EnvVar{
+				Name:  "FLUENTD_TIME_FORMAT",
+				Value: sidecarInjector.Spec.FluentD.TimeFormat,
+			})
+		}
+		if sidecarInjector.Spec.FluentD.CustomEnv != "" {
+			env = append(env, corev1.EnvVar{
+				Name:  "FLUENTD_CUSTOM_ENV",
+				Value: sidecarInjector.Spec.FluentD.CustomEnv,
+			})
+		}
+	}
+	if sidecarInjector.Spec.FluentBit != nil {
+		if sidecarInjector.Spec.FluentBit.DockerImage != "" {
+			env = append(env, corev1.EnvVar{
+				Name:  "FLUENTBIT_DOCKER_IMAGE",
+				Value: sidecarInjector.Spec.FluentBit.DockerImage,
+			})
+		}
+		if sidecarInjector.Spec.FluentBit.AggregatorHost != "" {
+			env = append(env, corev1.EnvVar{
+				Name:  "FLUENTBIT_AGGREGATOR_HOST",
+				Value: sidecarInjector.Spec.FluentBit.AggregatorHost,
+			})
+		}
+		if sidecarInjector.Spec.FluentBit.AggregatorPort != 0 {
+			env = append(env, corev1.EnvVar{
+				Name:  "FLUENTBIT_AGGREGATOR_PORT",
+				Value: fmt.Sprintf("%d", sidecarInjector.Spec.FluentBit.AggregatorPort),
+			})
+		}
+		if sidecarInjector.Spec.FluentBit.ApplicationLogDir != "" {
+			env = append(env, corev1.EnvVar{
+				Name:  "FLUENTBIT_APPLICATION_LOG_DIR",
+				Value: sidecarInjector.Spec.FluentBit.ApplicationLogDir,
+			})
+		}
+		if sidecarInjector.Spec.FluentBit.TagPrefix != "" {
+			env = append(env, corev1.EnvVar{
+				Name:  "FLUENTBIT_TAG_PREFIX",
+				Value: sidecarInjector.Spec.FluentBit.TagPrefix,
+			})
+		}
+		if sidecarInjector.Spec.FluentBit.CustomEnv != "" {
+			env = append(env, corev1.EnvVar{
+				Name:  "FLUENTBIT_CUSTOM_ENV",
+				Value: sidecarInjector.Spec.FluentBit.CustomEnv,
+			})
+		}
+	}
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sidecarInjector.Name + "-handler",
@@ -88,16 +183,7 @@ func newDeployment(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, sec
 								},
 							},
 							EnvFrom: nil,
-							Env: []corev1.EnvVar{
-								{
-									Name:  "FLUENTD_DOCKER_IMAGE",
-									Value: "ghcr.io/h3poteto/fluentd-forward:latest",
-								},
-								{
-									Name:  "COLLECTOR",
-									Value: "fluentd",
-								},
-							},
+							Env:     env,
 							Resources: corev1.ResourceRequirements{
 								Limits: map[corev1.ResourceName]resource.Quantity{
 									corev1.ResourceMemory: {
