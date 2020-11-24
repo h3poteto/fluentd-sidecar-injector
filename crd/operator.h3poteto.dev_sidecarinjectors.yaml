@@ -38,6 +38,9 @@ spec:
             description: SidecarInjectorSpec defines the desired state of SidecarInjector
             properties:
               collector:
+                default: fluentd
+                description: Default collector name which you want to inject. The
+                  name must be fluentd or fluent-bit. Default is fluentd.
                 type: string
             required:
             - collector
@@ -48,9 +51,11 @@ spec:
               injectorDeploymentName:
                 type: string
               injectorPodCount:
+                description: Available pods count under the deployment of SidecarInjector.
                 format: int32
                 type: integer
               injectorServiceReady:
+                description: Whether the webhook service is available.
                 type: boolean
             required:
             - injectorDeploymentName

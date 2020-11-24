@@ -19,14 +19,18 @@ type SidecarInjector struct {
 type SidecarInjectorSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Type:=string
+	// +kubebuilder:default=fluentd
+	// Default collector name which you want to inject. The name must be fluentd or fluent-bit. Default is fluentd.
 	Collector string `json:"collector"`
 }
 
 // SdecarInjectorStatus defines the observed state of SidecarInjector
 type SidecarInjectorStatus struct {
 	InjectorDeploymentName string `json:"injectorDeploymentName"`
-	InjectorPodCount       int32  `json:"injectorPodCount"`
-	InjectorServiceReady   bool   `json:"injectorServiceReady"`
+	// Available pods count under the deployment of SidecarInjector.
+	InjectorPodCount int32 `json:"injectorPodCount"`
+	// Whether the webhook service is available.
+	InjectorServiceReady bool `json:"injectorServiceReady"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
