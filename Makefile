@@ -9,6 +9,7 @@ endif
 
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
+### DEPRECATED
 NAMESPACE = default
 SERVICE = fluentd-sidecar-injector-webhook
 
@@ -26,6 +27,7 @@ clean:
 	rm ./install/kustomize/base/certs/*.key
 	rm ./install/kustomize/base/certs/*.csr
 	rm ./install/kustomize/base/certs/*.crt
+### DEPRECATED
 
 codegen:
 	${GOPATH}/src/k8s.io/code-generator/generate-groups.sh "deepcopy,client,informer,lister" \
