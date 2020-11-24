@@ -20,8 +20,8 @@ package fake
 
 import (
 	clientset "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/clientset/versioned"
-	samplecontrollerv1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/clientset/versioned/typed/sidecarinjectorcontroller/v1alpha1"
-	fakesamplecontrollerv1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/clientset/versioned/typed/sidecarinjectorcontroller/v1alpha1/fake"
+	operatorv1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/clientset/versioned/typed/sidecarinjectorcontroller/v1alpha1"
+	fakeoperatorv1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/clientset/versioned/typed/sidecarinjectorcontroller/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -76,7 +76,7 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 
 var _ clientset.Interface = &Clientset{}
 
-// SamplecontrollerV1alpha1 retrieves the SamplecontrollerV1alpha1Client
-func (c *Clientset) SamplecontrollerV1alpha1() samplecontrollerv1alpha1.SamplecontrollerV1alpha1Interface {
-	return &fakesamplecontrollerv1alpha1.FakeSamplecontrollerV1alpha1{Fake: &c.Fake}
+// OperatorV1alpha1 retrieves the OperatorV1alpha1Client
+func (c *Clientset) OperatorV1alpha1() operatorv1alpha1.OperatorV1alpha1Interface {
+	return &fakeoperatorv1alpha1.FakeOperatorV1alpha1{Fake: &c.Fake}
 }

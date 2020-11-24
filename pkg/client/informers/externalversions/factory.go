@@ -172,9 +172,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Samplecontroller() sidecarinjectorcontroller.Interface
+	Operator() sidecarinjectorcontroller.Interface
 }
 
-func (f *sharedInformerFactory) Samplecontroller() sidecarinjectorcontroller.Interface {
+func (f *sharedInformerFactory) Operator() sidecarinjectorcontroller.Interface {
 	return sidecarinjectorcontroller.New(f, f.namespace, f.tweakListOptions)
 }

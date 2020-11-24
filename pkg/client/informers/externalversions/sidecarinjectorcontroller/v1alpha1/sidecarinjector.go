@@ -62,13 +62,13 @@ func NewFilteredSidecarInjectorInformer(client versioned.Interface, namespace st
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SamplecontrollerV1alpha1().SidecarInjectors(namespace).List(context.TODO(), options)
+				return client.OperatorV1alpha1().SidecarInjectors(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SamplecontrollerV1alpha1().SidecarInjectors(namespace).Watch(context.TODO(), options)
+				return client.OperatorV1alpha1().SidecarInjectors(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&sidecarinjectorcontrollerv1alpha1.SidecarInjector{},

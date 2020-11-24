@@ -57,7 +57,7 @@ type sidecarInjectors struct {
 }
 
 // newSidecarInjectors returns a SidecarInjectors
-func newSidecarInjectors(c *SamplecontrollerV1alpha1Client, namespace string) *sidecarInjectors {
+func newSidecarInjectors(c *OperatorV1alpha1Client, namespace string) *sidecarInjectors {
 	return &sidecarInjectors{
 		client: c.RESTClient(),
 		ns:     namespace,

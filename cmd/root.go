@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/h3poteto/fluentd-sidecar-injector/cmd/controller"
+	"github.com/h3poteto/fluentd-sidecar-injector/cmd/dev"
 	"github.com/spf13/cobra"
 )
 
@@ -19,5 +20,6 @@ func init() {
 		webhookCmd(),
 		versionCmd(),
 		controller.ControllerCmd(),
+		dev.DevCmd(),
 	)
 }

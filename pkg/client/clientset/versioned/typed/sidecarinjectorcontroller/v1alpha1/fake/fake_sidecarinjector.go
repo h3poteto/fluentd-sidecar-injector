@@ -32,13 +32,13 @@ import (
 
 // FakeSidecarInjectors implements SidecarInjectorInterface
 type FakeSidecarInjectors struct {
-	Fake *FakeSamplecontrollerV1alpha1
+	Fake *FakeOperatorV1alpha1
 	ns   string
 }
 
-var sidecarinjectorsResource = schema.GroupVersionResource{Group: "samplecontroller.k8s.io", Version: "v1alpha1", Resource: "sidecarinjectors"}
+var sidecarinjectorsResource = schema.GroupVersionResource{Group: "operator.h3poteto.dev", Version: "v1alpha1", Resource: "sidecarinjectors"}
 
-var sidecarinjectorsKind = schema.GroupVersionKind{Group: "samplecontroller.k8s.io", Version: "v1alpha1", Kind: "SidecarInjector"}
+var sidecarinjectorsKind = schema.GroupVersionKind{Group: "operator.h3poteto.dev", Version: "v1alpha1", Kind: "SidecarInjector"}
 
 // Get takes name of the sidecarInjector, and returns the corresponding sidecarInjector object, and an error if there is any.
 func (c *FakeSidecarInjectors) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.SidecarInjector, err error) {

@@ -23,13 +23,14 @@ func ControllerCmd() *cobra.Command {
 	flags.StringVar(&o.kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flags.StringVar(&o.masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	viper.BindPFlag("kubeconfig", flags.Lookup("kubeconfig"))
+	viper.BindPFlag("master", flags.Lookup("master"))
 
 	cmd.AddCommand(sidecarInjectorCmd())
 
 	return cmd
 }
 
-func controllerConfig() string {
+func controllerConfig() (string, string) {
 	kubeconfig := viper.GetString("kubeconfig")
 	if len(kubeconfig) == 0 {
 		kubeconfig = os.Getenv("KUBECONFIG")
@@ -37,5 +38,6 @@ func controllerConfig() string {
 			kubeconfig = "$HOME/.kube/config"
 		}
 	}
-	return kubeconfig
+	master := viper.GetString("master")
+	return kubeconfig, master
 }
