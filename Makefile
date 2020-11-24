@@ -33,7 +33,7 @@ codegen:
 	sidecarinjectorcontroller:v1alpha1
 
 manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=sidecar-injector-manager-role paths=./pkg/apis/... output:dir=./crd
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=sidecar-injector-manager-role paths=./... output:dir=./crd
 
 controller-gen:
 ifeq (, $(shell which controller-gen))

@@ -62,8 +62,7 @@ type Controller struct {
 // +kubebuilder:rbac:groups=operator.h3poteto.dev,resources=sidecarinjectors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=operator.h3poteto.dev,resources=sidecarinjectors/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=secrets;services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=mutatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
