@@ -7,23 +7,17 @@ import (
 	"github.com/spf13/viper"
 )
 
-type controllerOption struct {
-	masterURL  string
-	kubeconfig string
-}
-
+// ControllerCmd command for controllers.
 func ControllerCmd() *cobra.Command {
-	o := &controllerOption{}
 	cmd := &cobra.Command{
 		Use:   "controller",
 		Short: "Start custom controller",
 	}
 
-	flags := cmd.Flags()
-	flags.StringVar(&o.kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
-	flags.StringVar(&o.masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
-	viper.BindPFlag("kubeconfig", flags.Lookup("kubeconfig"))
-	viper.BindPFlag("master", flags.Lookup("master"))
+	cmd.PersistentFlags().String("kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
+	cmd.PersistentFlags().String("master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
+	_ = viper.BindPFlag("kubeconfig", cmd.PersistentFlags().Lookup("kubeconfig"))
+	_ = viper.BindPFlag("master", cmd.PersistentFlags().Lookup("master"))
 
 	cmd.AddCommand(sidecarInjectorCmd())
 
@@ -32,9 +26,9 @@ func ControllerCmd() *cobra.Command {
 
 func controllerConfig() (string, string) {
 	kubeconfig := viper.GetString("kubeconfig")
-	if len(kubeconfig) == 0 {
+	if kubeconfig == "" {
 		kubeconfig = os.Getenv("KUBECONFIG")
-		if len(kubeconfig) == 0 {
+		if kubeconfig == "" {
 			kubeconfig = "$HOME/.kube/config"
 		}
 	}

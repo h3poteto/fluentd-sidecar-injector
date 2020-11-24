@@ -2,8 +2,7 @@ package dev
 
 import "github.com/spf13/cobra"
 
-type devOption struct{}
-
+// DevCmd commands for developer.
 func DevCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "dev",

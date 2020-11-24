@@ -34,7 +34,6 @@ import (
 )
 
 const controllerAgentName = "sidecar-injector-controller"
-const dockerImage = "ghcr.io/h3poteto/fluentd-sidecar-injector"
 const secretNamePrefix = "sidecar-injector-certs-"
 const serviceNamePrefix = "sidecar-injector-"
 const mutatingNamePrefix = "sidecar-injector-webhook-"
@@ -75,7 +74,11 @@ func NewController(
 	mutatingInformer admissionregistrationinformers.MutatingWebhookConfigurationInformer,
 	sidecarInjectorInformer informers.SidecarInjectorInformer) *Controller {
 
-	ownscheme.AddToScheme(scheme.Scheme)
+	err := ownscheme.AddToScheme(scheme.Scheme)
+	if err != nil {
+		klog.Error(err)
+		return nil
+	}
 	klog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(klog.Infof)

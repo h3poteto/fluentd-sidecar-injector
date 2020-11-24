@@ -21,8 +21,6 @@ import (
 	utilpointer "k8s.io/utils/pointer"
 )
 
-var oidExtensionSubjectAltName = []int{2, 5, 29, 17}
-
 const (
 	serverKeyName  = "key.pem"
 	serverCertName = "cert.pem"
