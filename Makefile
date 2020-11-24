@@ -22,12 +22,23 @@ prepare:
 build: prepare
 	./generate_template.sh ${NAMESPACE}
 	kubectl kustomize ./install/kustomize > kustomize.yaml
+### DEPRECATED
+
+run: codegen manifests
+	go run ./main.go controller sidecar-injector
+
+install: manifests
+	kubectl apply -f ./config/crd
+
+uninstall: manifests
+	kubectl delete -f ./config/crd
 
 clean:
 	rm ./install/kustomize/base/certs/*.key
 	rm ./install/kustomize/base/certs/*.csr
 	rm ./install/kustomize/base/certs/*.crt
-### DEPRECATED
+	rm ./*.crt
+	rm ./*.key
 
 codegen:
 	${GOPATH}/src/k8s.io/code-generator/generate-groups.sh "deepcopy,client,informer,lister" \
@@ -35,7 +46,7 @@ codegen:
 	sidecarinjectorcontroller:v1alpha1
 
 manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=sidecar-injector-manager-role paths=./... output:dir=./crd
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=sidecar-injector-manager-role paths=./...  output:crd:artifacts:config=./config/crd/
 
 controller-gen:
 ifeq (, $(shell which controller-gen))
