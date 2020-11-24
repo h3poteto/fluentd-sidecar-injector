@@ -42,6 +42,74 @@ spec:
                 description: Default collector name which you want to inject. The
                   name must be fluentd or fluent-bit. Default is fluentd.
                 type: string
+              fluentbit:
+                description: Please specify this argument when you specify fluent-bit
+                  as collector
+                nullable: true
+                properties:
+                  aggregatorHost:
+                    description: A FluentD hostname as a aggregator. Injected fluent-bit
+                      pods will send logs to this endpoint.
+                    type: string
+                  aggregatorPort:
+                    description: A FluentD port number as a aggregator.
+                    format: int32
+                    type: integer
+                  applicationLogDir:
+                    description: Lod directory path in your pods. SidecarInjector
+                      will mount a volume in this directory, and share it with injected
+                      fluent-bit pod. So fluent-bit pod can read application logs
+                      in this volume.
+                    type: string
+                  customEnv:
+                    description: Additional environment variables for SidecarInjector
+                    type: string
+                  dockerImage:
+                    description: Docker image name which you want to inject to your
+                      pods as sidecars. For example, ghcr.io/h3poteto/fluentbit-forward:latest
+                    type: string
+                  tagPrefix:
+                    description: This tag is prefix of received log's tag. Injected
+                      fluent-bit will add this prefix for all log's tag.
+                    type: string
+                type: object
+              fluentd:
+                description: Please specify this argument when you specify fluentd
+                  as collector.
+                nullable: true
+                properties:
+                  aggregatorHost:
+                    description: A FluentD hostname as a aggregator. Injected fluentd
+                      pods will send logs to this endpoint.
+                    type: string
+                  aggregatorPort:
+                    description: A FluentD port number as a aggregator.
+                    format: int32
+                    type: integer
+                  applicationLogDir:
+                    description: Lod directory path in your pods. SidecarInjector
+                      will mount a volume in this directory, and share it with injected
+                      fluentd pod. So fluentd pod can read application logs in this
+                      volume.
+                    type: string
+                  customEnv:
+                    description: Additional environment variables for SidecarInjector
+                    type: string
+                  dockerImage:
+                    description: Docker image name which you want to inject to your
+                      pods as sidecars. For example, ghcr.io/h3poteto/fluentd-forward:latest
+                    type: string
+                  tagPrefix:
+                    description: This tag is prefix of received log's tag. Injected
+                      fluentd will add this prefix for all log's tag.
+                    type: string
+                  timeFormat:
+                    description: A option for fluentd configuration, time_format.
+                    type: string
+                  timeKey:
+                    description: A option for fluentd configuration, time_key.
+                    type: string
+                type: object
             required:
             - collector
             type: object

@@ -22,6 +22,14 @@ type SidecarInjectorSpec struct {
 	// +kubebuilder:default=fluentd
 	// Default collector name which you want to inject. The name must be fluentd or fluent-bit. Default is fluentd.
 	Collector string `json:"collector"`
+	// +optional
+	// +nullable
+	// Please specify this argument when you specify fluentd as collector.
+	FluentD FluentDSpec `json:"fluentd"`
+	// +optional
+	// +nullable
+	// Please specify this argument when you specify fluent-bit as collector
+	FluentBit FluentBitSpec `json:"fluentbit"`
 }
 
 // SdecarInjectorStatus defines the observed state of SidecarInjector
@@ -43,4 +51,54 @@ type SidecarInjectorList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 
 	Items []SidecarInjector `json:"items"`
+}
+
+// FluentDSpec describe fluentd options for SidcarInjector.
+type FluentDSpec struct {
+	// +optional
+	// Docker image name which you want to inject to your pods as sidecars. For example, ghcr.io/h3poteto/fluentd-forward:latest
+	DockerImage string `json:"dockerImage"`
+	// +optional
+	// A FluentD hostname as a aggregator. Injected fluentd pods will send logs to this endpoint.
+	AggregatorHost string `json:"aggregatorHost"`
+	// +optional
+	// A FluentD port number as a aggregator.
+	AggregatorPort int32 `json:"aggregatorPort"`
+	// +optional
+	// Lod directory path in your pods. SidecarInjector will mount a volume in this directory, and share it with injected fluentd pod. So fluentd pod can read application logs in this volume.
+	ApplicationLogDir string `json:"applicationLogDir"`
+	// +optional
+	// This tag is prefix of received log's tag. Injected fluentd will add this prefix for all log's tag.
+	TagPrefix string `json:"tagPrefix"`
+	// +optional
+	// A option for fluentd configuration, time_key.
+	TimeKey string `json:"timeKey"`
+	// +optional
+	// A option for fluentd configuration, time_format.
+	TimeFormat string `json:"timeFormat"`
+	// +optional
+	// Additional environment variables for SidecarInjector
+	CustomEnv string `json:"customEnv"`
+}
+
+// FluentBitSpec describe fluent-bit options for SidecarInjector.
+type FluentBitSpec struct {
+	// +optional
+	// Docker image name which you want to inject to your pods as sidecars. For example, ghcr.io/h3poteto/fluentbit-forward:latest
+	DockerImage string `json:"dockerImage"`
+	// +optional
+	// A FluentD hostname as a aggregator. Injected fluent-bit pods will send logs to this endpoint.
+	AggregatorHost string `json:"aggregatorHost"`
+	// +optional
+	// A FluentD port number as a aggregator.
+	AggregatorPort int32 `json:"aggregatorPort"`
+	// +optional
+	// Lod directory path in your pods. SidecarInjector will mount a volume in this directory, and share it with injected fluent-bit pod. So fluent-bit pod can read application logs in this volume.
+	ApplicationLogDir string `json:"applicationLogDir"`
+	// +optional
+	// This tag is prefix of received log's tag. Injected fluent-bit will add this prefix for all log's tag.
+	TagPrefix string `json:"tagPrefix"`
+	// +optional
+	// Additional environment variables for SidecarInjector
+	CustomEnv string `json:"customEnv"`
 }
