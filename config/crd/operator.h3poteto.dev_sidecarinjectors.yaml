@@ -1,0 +1,146 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: sidecarinjectors.operator.h3poteto.dev
+spec:
+  group: operator.h3poteto.dev
+  names:
+    kind: SidecarInjector
+    listKind: SidecarInjectorList
+    plural: sidecarinjectors
+    singular: sidecarinjector
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: SidecarInjector is a top-level type. A client is created for
+          it.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: SidecarInjectorSpec defines the desired state of SidecarInjector
+            properties:
+              collector:
+                default: fluentd
+                description: Default collector name which you want to inject. The
+                  name must be fluentd or fluent-bit. Default is fluentd.
+                enum:
+                - fluentd
+                - fluent-bit
+                type: string
+              fluentbit:
+                description: Please specify this argument when you specify fluent-bit
+                  as collector
+                nullable: true
+                properties:
+                  aggregatorHost:
+                    description: A FluentD hostname as a aggregator. Injected fluent-bit
+                      pods will send logs to this endpoint.
+                    type: string
+                  aggregatorPort:
+                    description: A FluentD port number as a aggregator.
+                    format: int32
+                    type: integer
+                  applicationLogDir:
+                    description: Lod directory path in your pods. SidecarInjector
+                      will mount a volume in this directory, and share it with injected
+                      fluent-bit pod. So fluent-bit pod can read application logs
+                      in this volume.
+                    type: string
+                  customEnv:
+                    description: Additional environment variables for SidecarInjector
+                    type: string
+                  dockerImage:
+                    description: Docker image name which you want to inject to your
+                      pods as sidecars. For example, ghcr.io/h3poteto/fluentbit-forward:latest
+                    type: string
+                  tagPrefix:
+                    description: This tag is prefix of received log's tag. Injected
+                      fluent-bit will add this prefix for all log's tag.
+                    type: string
+                type: object
+              fluentd:
+                description: Please specify this argument when you specify fluentd
+                  as collector.
+                nullable: true
+                properties:
+                  aggregatorHost:
+                    description: A FluentD hostname as a aggregator. Injected fluentd
+                      pods will send logs to this endpoint.
+                    type: string
+                  aggregatorPort:
+                    description: A FluentD port number as a aggregator.
+                    format: int32
+                    type: integer
+                  applicationLogDir:
+                    description: Lod directory path in your pods. SidecarInjector
+                      will mount a volume in this directory, and share it with injected
+                      fluentd pod. So fluentd pod can read application logs in this
+                      volume.
+                    type: string
+                  customEnv:
+                    description: Additional environment variables for SidecarInjector
+                    type: string
+                  dockerImage:
+                    description: Docker image name which you want to inject to your
+                      pods as sidecars. For example, ghcr.io/h3poteto/fluentd-forward:latest
+                    type: string
+                  tagPrefix:
+                    description: This tag is prefix of received log's tag. Injected
+                      fluentd will add this prefix for all log's tag.
+                    type: string
+                  timeFormat:
+                    description: A option for fluentd configuration, time_format.
+                    type: string
+                  timeKey:
+                    description: A option for fluentd configuration, time_key.
+                    type: string
+                type: object
+            required:
+            - collector
+            type: object
+          status:
+            description: SdecarInjectorStatus defines the observed state of SidecarInjector
+            properties:
+              injectorDeploymentName:
+                type: string
+              injectorPodCount:
+                description: Available pods count under the deployment of SidecarInjector.
+                format: int32
+                type: integer
+              injectorServiceReady:
+                description: Whether the webhook service is available.
+                type: boolean
+            required:
+            - injectorDeploymentName
+            - injectorPodCount
+            - injectorServiceReady
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
