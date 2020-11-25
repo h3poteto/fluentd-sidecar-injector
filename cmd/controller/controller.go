@@ -30,6 +30,9 @@ func controllerConfig() (string, string) {
 		kubeconfig = os.Getenv("KUBECONFIG")
 		if kubeconfig == "" {
 			kubeconfig = "$HOME/.kube/config"
+			if _, err := os.Stat(kubeconfig); err != nil {
+				kubeconfig = ""
+			}
 		}
 	}
 	master := viper.GetString("master")
