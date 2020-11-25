@@ -8,6 +8,10 @@ GOBIN=$(shell go env GOBIN)
 endif
 
 CRD_OPTIONS ?= "crd:trivialVersions=true"
+CODE_GENERATOR=${GOPATH}/src/k8s.io/code-generator
+
+build: codegen manifests
+	go build
 
 run: codegen manifests
 	go run ./main.go controller sidecar-injector
@@ -25,13 +29,18 @@ clean:
 	rm ./*.crt
 	rm ./*.key
 
-codegen:
-	${GOPATH}/src/k8s.io/code-generator/generate-groups.sh "deepcopy,client,informer,lister" \
+codegen: code-generator
+	${CODE_GENERATOR}/generate-groups.sh "deepcopy,client,informer,lister" \
 	github.com/h3poteto/fluentd-sidecar-injector/pkg/client github.com/h3poteto/fluentd-sidecar-injector/pkg/apis \
 	sidecarinjectorcontroller:v1alpha1
 
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=sidecar-injector-manager-role paths=./...  output:crd:artifacts:config=./config/crd/
+
+code-generator:
+ifeq (, $(wildcard ${CODE_GENERATOR}))
+	git clone https://github.com/kubernetes/code-generator.git ${CODE_GENERATOR}
+endif
 
 controller-gen:
 ifeq (, $(shell which controller-gen))

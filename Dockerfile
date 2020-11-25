@@ -6,13 +6,19 @@ ENV CGO_ENABLED="0" \
 
 WORKDIR /go/src/github.com/h3poteto/fluentd-sidecar-injector
 
+RUN set -ex && \
+    apk add --no-cache \
+    make \
+    git \
+    bash
+
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
 
 COPY . .
 RUN set -ex && \
-    go build -o fluentd-sidecar-injector
+    make build
 
 FROM alpine:latest
 COPY --from=builder /go/src/github.com/h3poteto/fluentd-sidecar-injector/fluentd-sidecar-injector /fluentd-sidecar-injector
