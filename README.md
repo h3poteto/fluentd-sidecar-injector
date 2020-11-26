@@ -279,6 +279,25 @@ You can use this value in your fluent.conf with config-volume option.
 
 You can find out more about the values on [The Downward API](https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/#the-downward-api).
 
+## Development
+Please prepare a Kubernetes cluster to install this, and export `KUBECONFIG`.
+
+```
+$ export KUBECONFIG=$HOME/.kube/config
+```
+
+At first, please install CRDs.
+
+```
+$ make install
+```
+
+Next, please run controller in local.
+
+```
+$ make run
+```
+
 ## License
 
 The package is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
