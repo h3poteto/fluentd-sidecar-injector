@@ -23,11 +23,8 @@ uninstall: manifests
 	kubectl delete -f ./config/crd
 
 clean:
-	rm ./install/kustomize/base/certs/*.key
-	rm ./install/kustomize/base/certs/*.csr
-	rm ./install/kustomize/base/certs/*.crt
-	rm ./*.crt
-	rm ./*.key
+	rm -f ./*.crt
+	rm -f ./*.key
 
 codegen: code-generator
 	${CODE_GENERATOR}/generate-groups.sh "deepcopy,client,informer,lister" \

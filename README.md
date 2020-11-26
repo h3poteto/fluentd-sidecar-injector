@@ -1,5 +1,5 @@
 [![CircleCI](https://circleci.com/gh/h3poteto/fluentd-sidecar-injector.svg?style=svg)](https://circleci.com/gh/h3poteto/fluentd-sidecar-injector)
-![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/h3poteto/fluentd-sidecar-injector?sort=semver&style=flat-square)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/h3poteto/fluentd-sidecar-injector?sort=semver&style=square)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-blue.svg)](https://dependabot.com)
 
 # fluentd-sidecar-injector
@@ -10,9 +10,51 @@
 - You can control injection using Pod's annotations
 - You can change fluentd or fluent-bit docker image to be injected
 
+## Install
+You can install this controller and webhook server using helm.
+
+```
+$ helm repo add h3poteto-stable https://h3poteto.github.io/charts/stable
+$ helm install my-injector --namespace kube-system h3poteto-stable/fluentd-sidecar-injector
+```
+
+Please refer [helm repository](https://github.com/h3poteto/charts/tree/master/stable/fluentd-sidecar-injector) for parameters.
+
+
+After install it, custom resources and controller will be installed.
+
+```
+$ kubectl get sidecarinjectors -n kube-system
+NAME                  AGE
+my-injector-fluentd   1m56s
+
+$ kubectl get pods -n kube-system -l operator.h3poteto.dev=control-plane
+NAME                                   READY   STATUS    RESTARTS   AGE
+my-injector-manager-6d7f6bcd55-z5jcv   1/1     Running   0          2m17s
+```
+
+And it creates admission webhook for the sidecar injector.
+
+```
+$ kubectl get mutatingwebhookconfigurations
+NAME                                           WEBHOOKS   AGE
+sidecar-injector-webhook-my-injector-fluentd   1          5m15s
+
+$ kubectl get svc -n kube-system -l sidecarinjectors.operator.h3poteto.dev=webhook-service
+NAME                                   TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+sidecar-injector-my-injector-fluentd   ClusterIP   100.69.147.98   <none>        443/TCP   4m2s
+
+$ kubectl get pods -n kube-system -l sidecarinjectors.operator.h3poteto.dev=webhook-pod
+NAME                                           READY   STATUS    RESTARTS   AGE
+my-injector-fluentd-handler-5969df9695-ftklp   1/1     Running   0          4m51s
+my-injector-fluentd-handler-5969df9695-x5n5r   1/1     Running   0          4m51s
+```
+
 ## Usage
 
-After you install this webhook server, fluentd sidecar containers are automatically injected. If you provide a deployment:
+After you install this webhook server, fluentd sidecar containers are automatically injected, if you specify the annotation `fluentd-sidecar-injector.h3poteto.dev/injection: 'enabled'` to the pods.
+
+For example:
 
 ```yaml
 apiVersion: apps/v1
@@ -40,7 +82,7 @@ spec:
           image: nginx:latest
 ```
 
-fluentd is injected for this Pod.
+FluentD is injected for this Pod.
 
 ```sh
 $ kubectl get pod
@@ -163,28 +205,7 @@ data:
     </match>
 ```
 
-## Install
-
-```sh
-$ git clone https://github.com/h3poteto/fluentd-sidecar-injector.git
-$ cd fluentd-sidecar-injector
-```
-
-At first, please use `make` to generate kustomize template files.
-
-```sh
-$ make build NAMESPACE=kube-system
-```
-
-You can specify `NAMESPACE` where you want to install this webhook server. It works fine with any namespace. Please customize generated kustomization files if you want.
-
-Next, please install it.
-
-```sh
-$ kubectl apply -k ./install/kustomize
-```
-
-## Annotations
+### Annotations
 
 Please specify these annotations to your pods like [this](example/deployment.yaml).
 
@@ -239,30 +260,6 @@ These annotations are used when `collector` is `fluent-bit`.
 - <a name="refresh-interval">`fluentd-sidecar-injector.h3poteto.dev/refresh-interval`</a> is fluent-bit configuration in [hrere](https://github.com/h3poteto/docker-fluentbit-forward/blob/master/fluent-bit.conf#L11). Default is `60` second.
 - <a name="rotate-wait">`fluentd-sidecar-injector.h3poteto.dev/rotate-wait`</a> is fluent-bit configuration in [here](https://github.com/h3poteto/docker-fluentbit-forward/blob/master/fluent-bit.conf#L12). Default is `5` second.
 
-## Environment variables
-
-If you use same parameters for all sidecar fluentd containers which are injected by this webhook, you can set the parameters with environment variables. If you want to specify these environment variables, please customize [kustomize template](install/kustomize/base/deployment.yaml).
-
-| Name                                                | Default                           |
-| --------------------------------------------------- | --------------------------------- |
-| [COLLECTOR](#collector)                              | `fluentd`                          |
-| [FLUENTD_DOCKER_IMAGE](#docker-image)               | `ghcr.io/h3poteto/fluentd-forward:latest` |
-| [FLUENTD_AGGREGATOR_HOST](#aggregator-host)         | ""                                |
-| [FLUENTD_AGGREGATOR_PORT](#aggregator-port)         | `24224`                           |
-| [FLUENTD_APPLICATION_LOG_DIR](#application-log-dir) | ""                                |
-| [FLUENTD_TAG_PREFIX](#tag-prefix)                   | ""                             |
-| [FLUENTD_TIME_KEY](#time-key)                       | `time`                            |
-| [FLUENTD_TIME_FORMAT](#time-format)                 | `%Y-%m-%dT%H:%M:%S%z`             |
-| [FLUENTD_CUSTOM_ENV](#custom-env)                   | ""                                |
-| [FLUENTBIT_DOCKER_IMAGE](#docker-image)              | `ghcr.io/h3poteto/fluentbit-forward:latest` |
-| [FLUENTBIT_AGGREGATOR_HOST](#aggregator-host)         | ""                                |
-| [FLUENTBIT_AGGREGATOR_PORT](#aggregator-port)         | `24224`                           |
-| [FLUENTBIT_APPLICATION_LOG_DIR](#application-log-dir) | ""                                |
-| [FLUENTBIT_TAG_PREFIX](#tag-prefix)                   | ""                             |
-| [FLUENTBIT_CUSTOM_ENV](#custom-env)                   | ""                                |
-
-Note: these parameters will be overrided with Pod annotations if you set.
-
 ### Fixed environment variables
 
 The following values ​​will be set for each fluentd-sidecar.
@@ -281,6 +278,25 @@ You can use this value in your fluent.conf with config-volume option.
 | MEM_LIMIT           | `limits.memory`           |
 
 You can find out more about the values on [The Downward API](https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/#the-downward-api).
+
+## Development
+Please prepare a Kubernetes cluster to install this, and export `KUBECONFIG`.
+
+```
+$ export KUBECONFIG=$HOME/.kube/config
+```
+
+At first, please install CRDs.
+
+```
+$ make install
+```
+
+Next, please run controller in local.
+
+```
+$ make run
+```
 
 ## License
 
