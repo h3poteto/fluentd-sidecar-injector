@@ -6,7 +6,7 @@ import (
 
 	"github.com/h3poteto/fluentd-sidecar-injector/pkg/controller/sidecarinjector"
 	"github.com/spf13/cobra"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 type certificateOption struct {
