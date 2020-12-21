@@ -41,7 +41,6 @@ func (o *sidecarInjectorOption) run(cmd *cobra.Command, args []string) {
 		klog.Fatalf("Error building kubeconfig: %s", err.Error())
 	}
 
-	// TODO: use downward API
 	ns := os.Getenv("POD_NAMESPACE")
 	if ns == "" {
 		ns = "default"
