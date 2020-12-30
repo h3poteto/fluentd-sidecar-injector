@@ -10,10 +10,12 @@ import (
 	"github.com/h3poteto/fluentd-sidecar-injector/e2e/pkg/util"
 	clientset "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/clientset/versioned"
 	"github.com/h3poteto/fluentd-sidecar-injector/pkg/controller/sidecarinjector"
+	pkgwebhook "github.com/h3poteto/fluentd-sidecar-injector/pkg/webhook"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -92,21 +94,37 @@ var _ = Describe("E2E", func() {
 		}
 
 	})
-	Describe("Operator", func() {
-		// Check deploying custom resources
-		It("Should be deployed a custom resource and created a webhook configuration", func() {
+	Describe("Webhook is created and sidecar containers are injected", func() {
+		var (
+			ownClient  *clientset.Clientset
+			client     *kubernetes.Clientset
+			collector  string
+			webhook    *admissionregistrationv1.MutatingWebhookConfiguration
+			setupError error
+			ns         string = "default"
+		)
+		JustBeforeEach(func() {
 			ctx := context.Background()
-			ownClient, err := clientset.NewForConfig(cfg)
-			Expect(err).To(BeNil())
-			sidecarInjector := fixtures.NewSidecarInjector("default")
-			_, err = ownClient.OperatorV1alpha1().SidecarInjectors("default").Create(ctx, sidecarInjector, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
+			var err error
+			ownClient, err = clientset.NewForConfig(cfg)
+			if err != nil {
+				setupError = err
+				return
+			}
+			sidecarInjector := fixtures.NewSidecarInjector(ns, collector)
+			_, err = ownClient.OperatorV1alpha1().SidecarInjectors(ns).Create(ctx, sidecarInjector, metav1.CreateOptions{})
+			if err != nil {
+				setupError = err
+				return
+			}
 
-			client, err := kubernetes.NewForConfig(cfg)
-			Expect(err).To(BeNil())
+			client, err = kubernetes.NewForConfig(cfg)
+			if err != nil {
+				setupError = err
+				return
+			}
 
-			var webhook *admissionregistrationv1.MutatingWebhookConfiguration
-			err = wait.Poll(10*time.Second, 5*time.Minute, func() (bool, error) {
+			setupError = wait.Poll(1*time.Second, 5*time.Minute, func() (bool, error) {
 				res, err := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, sidecarinjector.MutatingNamePrefix+sidecarInjector.Name, metav1.GetOptions{})
 				if err != nil {
 					if kerrors.IsNotFound(err) {
@@ -120,12 +138,114 @@ var _ = Describe("E2E", func() {
 				webhook = res
 				return true, nil
 			})
-			Expect(err).To(BeNil())
-			Expect(webhook).NotTo(BeNil())
 		})
-	})
-	Describe("Webhook", func() {
-		// Check webhook are injected
+
+		AfterEach(func() {
+			ctx := context.Background()
+			sidecarInjector := fixtures.NewSidecarInjector(ns, collector)
+			if err := ownClient.OperatorV1alpha1().SidecarInjectors(ns).Delete(ctx, sidecarInjector.Name, metav1.DeleteOptions{}); err != nil {
+				panic(err)
+			}
+			err := wait.Poll(1*time.Second, 3*time.Minute, func() (bool, error) {
+				res, err := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, sidecarinjector.MutatingNamePrefix+sidecarInjector.Name, metav1.GetOptions{})
+				if err != nil {
+					if kerrors.IsNotFound(err) {
+						return true, nil
+					}
+					return false, err
+				}
+				if res == nil {
+					return true, nil
+				}
+				return false, nil
+			})
+			if err != nil {
+				panic(err)
+			}
+		})
+
+		Context("Collector is fluentd", func() {
+			BeforeEach(func() {
+				collector = "fluentd"
+			})
+			It("fluentd container is injected", func() {
+				Expect(setupError).To(BeNil())
+				Expect(webhook).NotTo(BeNil())
+
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+				defer cancel()
+
+				// Wait until webhook servers are deployed.
+				err := wait.Poll(10*time.Second, 5*time.Minute, func() (bool, error) {
+					podList, err := client.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{
+						LabelSelector: fmt.Sprintf("%s=%s", sidecarinjector.WebhookServerLabelKey, sidecarinjector.WebhookServerLabelValue),
+					})
+					if err != nil {
+						if kerrors.IsNotFound(err) {
+							klog.Info("Webhook servers have not been deployed yet")
+							return false, nil
+						}
+						return false, err
+					}
+					return util.WaitPodRunning(podList)
+
+				})
+				Expect(err).To(BeNil())
+
+				_, err = applyTestPod(ctx, client, ns)
+				Expect(err).To(BeNil())
+
+				var pods []corev1.Pod
+				err = wait.Poll(10*time.Second, 5*time.Minute, func() (bool, error) {
+					podList, err := client.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{
+						LabelSelector: fmt.Sprintf("%s=%s", fixtures.TestPodLabelKey, fixtures.TestPodLabelValue),
+					})
+					if err != nil {
+						if kerrors.IsNotFound(err) {
+							return false, nil
+						}
+						return false, err
+					}
+					running, err := util.WaitPodRunning(podList)
+					if running {
+						pods = podList.Items
+					}
+					return running, err
+				})
+				Expect(err).To(BeNil())
+
+				for i := range pods {
+					Expect(len(pods[i].Spec.Containers)).To(Equal(2), "Containers count is not matched")
+					// The default token secret is mounted, so the volume has been mounted before sidecar container is injected.
+					Expect(len(pods[i].Spec.Volumes)).To(Equal(2), "Volumes count is not matched")
+					volume := util.FindVolume(pods[i].Spec.Volumes, pkgwebhook.VolumeName)
+					Expect(volume).NotTo(BeNil(), "Pod volume is not matched")
+
+					container := util.FindContainer(&pods[i], pkgwebhook.ContainerName)
+					Expect(container).NotTo(BeNil(), "Sidecar container is not found")
+					Expect(container.Image).To(Equal("ghcr.io/h3poteto/fluentd-forward:latest"), "Injectd image is not matched")
+					containerVolume := util.FindMount(container.VolumeMounts, pkgwebhook.VolumeName)
+					Expect(containerVolume).NotTo(BeNil(), "Volume is not mounted to sidecar container")
+					Expect(containerVolume.MountPath).To(Equal(fixtures.LogDir), "Sidecar container volume mount is not matched")
+
+					nginx := util.FindContainer(&pods[i], fixtures.TestContainerName)
+					Expect(nginx).NotTo(BeNil(), "Nginx container is not found")
+					nginxVolume := util.FindMount(nginx.VolumeMounts, pkgwebhook.VolumeName)
+					Expect(nginxVolume).NotTo(BeNil(), "Volume is not mounted to nginx container")
+					Expect(nginxVolume.MountPath).To(Equal(fixtures.LogDir), "Nginx container volume mount is not matched")
+				}
+			})
+		})
+		Context("Collector is fluent-bit", func() {
+			BeforeEach(func() {
+				collector = "fluent-bit"
+			})
+			It("Custom resource should be deployed and a webhook configuration is created", func() {
+				Expect(setupError).To(BeNil())
+				Expect(webhook).NotTo(BeNil())
+			})
+			XIt("fluent-bit container is injectd", func() {})
+		})
 	})
 })
 
@@ -167,28 +287,8 @@ func applyManager(ctx context.Context, client *kubernetes.Clientset, ns string) 
 			}
 			return false, err
 		}
-		klog.V(4).Infof("Pods are %#v", podList.Items)
-		if len(podList.Items) == 0 {
-			return false, nil
-		}
-		for i := range podList.Items {
-			klog.Infof("Pod %s phase is %s", podList.Items[i].Name, podList.Items[i].Status.Phase)
-			if podList.Items[i].Status.Phase != corev1.PodRunning {
-				return false, nil
-			}
-			for _, status := range podList.Items[i].Status.ContainerStatuses {
-				if !status.Ready {
-					klog.Infof("Container %s in Pod %s is not ready", status.Name, podList.Items[i].Name)
-					return false, nil
-				}
-				if status.State.Running == nil {
-					klog.Infof("Container %s in Pod %s is not running", status.Name, podList.Items[i].Name)
-					return false, nil
-				}
-				klog.Infof("Container %s in Pod %s is ready and running", status.Name, podList.Items[i].Name)
-			}
-		}
-		return true, nil
+
+		return util.WaitPodRunning(podList)
 	})
 	if err != nil {
 		return err
@@ -236,4 +336,10 @@ func deleteManager(ctx context.Context, client *kubernetes.Clientset, ns string)
 	}
 
 	return nil
+}
+
+func applyTestPod(ctx context.Context, client *kubernetes.Clientset, ns string) (*appsv1.Deployment, error) {
+	nginx := fixtures.NewNginx(ns)
+	return client.AppsV1().Deployments(ns).Create(ctx, nginx, metav1.CreateOptions{})
+
 }

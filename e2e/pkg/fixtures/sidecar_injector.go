@@ -5,18 +5,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewSidecarInjector(ns string) *v1alpha1.SidecarInjector {
-	return sidecarInjector(ns)
+func NewSidecarInjector(ns, collector string) *v1alpha1.SidecarInjector {
+	return sidecarInjector(ns, collector)
 }
 
-func sidecarInjector(ns string) *v1alpha1.SidecarInjector {
+func sidecarInjector(ns, collector string) *v1alpha1.SidecarInjector {
 	return &v1alpha1.SidecarInjector{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "e2e",
 			Namespace: ns,
 		},
 		Spec: v1alpha1.SidecarInjectorSpec{
-			Collector: "fluentd",
+			Collector: collector,
 		},
 	}
 }
