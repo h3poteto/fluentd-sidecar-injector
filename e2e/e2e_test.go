@@ -169,82 +169,16 @@ var _ = Describe("E2E", func() {
 				collector = "fluentd"
 			})
 			It("fluentd container is injected", func() {
-				Expect(setupError).To(BeNil())
-				Expect(webhook).NotTo(BeNil())
-
-				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-				defer cancel()
-
-				// Wait until webhook servers are deployed.
-				err := wait.Poll(10*time.Second, 5*time.Minute, func() (bool, error) {
-					podList, err := client.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{
-						LabelSelector: fmt.Sprintf("%s=%s", sidecarinjector.WebhookServerLabelKey, sidecarinjector.WebhookServerLabelValue),
-					})
-					if err != nil {
-						if kerrors.IsNotFound(err) {
-							klog.Info("Webhook servers have not been deployed yet")
-							return false, nil
-						}
-						return false, err
-					}
-					return util.WaitPodRunning(podList)
-
-				})
-				Expect(err).To(BeNil())
-
-				_, err = applyTestPod(ctx, client, ns)
-				Expect(err).To(BeNil())
-
-				var pods []corev1.Pod
-				err = wait.Poll(10*time.Second, 5*time.Minute, func() (bool, error) {
-					podList, err := client.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{
-						LabelSelector: fmt.Sprintf("%s=%s", fixtures.TestPodLabelKey, fixtures.TestPodLabelValue),
-					})
-					if err != nil {
-						if kerrors.IsNotFound(err) {
-							return false, nil
-						}
-						return false, err
-					}
-					running, err := util.WaitPodRunning(podList)
-					if running {
-						pods = podList.Items
-					}
-					return running, err
-				})
-				Expect(err).To(BeNil())
-
-				for i := range pods {
-					Expect(len(pods[i].Spec.Containers)).To(Equal(2), "Containers count is not matched")
-					// The default token secret is mounted, so the volume has been mounted before sidecar container is injected.
-					Expect(len(pods[i].Spec.Volumes)).To(Equal(2), "Volumes count is not matched")
-					volume := util.FindVolume(pods[i].Spec.Volumes, pkgwebhook.VolumeName)
-					Expect(volume).NotTo(BeNil(), "Pod volume is not matched")
-
-					container := util.FindContainer(&pods[i], pkgwebhook.ContainerName)
-					Expect(container).NotTo(BeNil(), "Sidecar container is not found")
-					Expect(container.Image).To(Equal("ghcr.io/h3poteto/fluentd-forward:latest"), "Injectd image is not matched")
-					containerVolume := util.FindMount(container.VolumeMounts, pkgwebhook.VolumeName)
-					Expect(containerVolume).NotTo(BeNil(), "Volume is not mounted to sidecar container")
-					Expect(containerVolume.MountPath).To(Equal(fixtures.LogDir), "Sidecar container volume mount is not matched")
-
-					nginx := util.FindContainer(&pods[i], fixtures.TestContainerName)
-					Expect(nginx).NotTo(BeNil(), "Nginx container is not found")
-					nginxVolume := util.FindMount(nginx.VolumeMounts, pkgwebhook.VolumeName)
-					Expect(nginxVolume).NotTo(BeNil(), "Volume is not mounted to nginx container")
-					Expect(nginxVolume.MountPath).To(Equal(fixtures.LogDir), "Nginx container volume mount is not matched")
-				}
+				spec(setupError, webhook, client, ns, "ghcr.io/h3poteto/fluentd-forward:latest")
 			})
 		})
 		Context("Collector is fluent-bit", func() {
 			BeforeEach(func() {
 				collector = "fluent-bit"
 			})
-			It("Custom resource should be deployed and a webhook configuration is created", func() {
-				Expect(setupError).To(BeNil())
-				Expect(webhook).NotTo(BeNil())
+			It("fluent-bit container is injectd", func() {
+				spec(setupError, webhook, client, ns, "ghcr.io/h3poteto/fluentbit-forward:latest")
 			})
-			XIt("fluent-bit container is injectd", func() {})
 		})
 	})
 })
@@ -341,5 +275,85 @@ func deleteManager(ctx context.Context, client *kubernetes.Clientset, ns string)
 func applyTestPod(ctx context.Context, client *kubernetes.Clientset, ns string) (*appsv1.Deployment, error) {
 	nginx := fixtures.NewNginx(ns)
 	return client.AppsV1().Deployments(ns).Create(ctx, nginx, metav1.CreateOptions{})
+}
 
+func deleteTestPod(ctx context.Context, client *kubernetes.Clientset, ns string) error {
+	nginx := fixtures.NewNginx(ns)
+	return client.AppsV1().Deployments(ns).Delete(ctx, nginx.Name, metav1.DeleteOptions{})
+}
+
+func spec(
+	setupError error,
+	webhook *admissionregistrationv1.MutatingWebhookConfiguration,
+	client *kubernetes.Clientset,
+	ns,
+	injectedContainerImage string) {
+	Expect(setupError).To(BeNil())
+	Expect(webhook).NotTo(BeNil())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
+	// Wait until webhook servers are deployed.
+	err := wait.Poll(10*time.Second, 5*time.Minute, func() (bool, error) {
+		podList, err := client.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{
+			LabelSelector: fmt.Sprintf("%s=%s", sidecarinjector.WebhookServerLabelKey, sidecarinjector.WebhookServerLabelValue),
+		})
+		if err != nil {
+			if kerrors.IsNotFound(err) {
+				klog.Info("Webhook servers have not been deployed yet")
+				return false, nil
+			}
+			return false, err
+		}
+		return util.WaitPodRunning(podList)
+
+	})
+	Expect(err).To(BeNil())
+
+	_, err = applyTestPod(ctx, client, ns)
+	Expect(err).To(BeNil())
+
+	var pods []corev1.Pod
+	err = wait.Poll(10*time.Second, 5*time.Minute, func() (bool, error) {
+		podList, err := client.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{
+			LabelSelector: fmt.Sprintf("%s=%s", fixtures.TestPodLabelKey, fixtures.TestPodLabelValue),
+		})
+		if err != nil {
+			if kerrors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		running, err := util.WaitPodRunning(podList)
+		if running {
+			pods = podList.Items
+		}
+		return running, err
+	})
+	Expect(err).To(BeNil())
+
+	for i := range pods {
+		Expect(len(pods[i].Spec.Containers)).To(Equal(2), "Containers count is not matched")
+		// The default token secret is mounted, so the volume has been mounted before sidecar container is injected.
+		Expect(len(pods[i].Spec.Volumes)).To(Equal(2), "Volumes count is not matched")
+		volume := util.FindVolume(pods[i].Spec.Volumes, pkgwebhook.VolumeName)
+		Expect(volume).NotTo(BeNil(), "Pod volume is not matched")
+
+		container := util.FindContainer(&pods[i], pkgwebhook.ContainerName)
+		Expect(container).NotTo(BeNil(), "Sidecar container is not found")
+		Expect(container.Image).To(Equal(injectedContainerImage), "Injectd image is not matched")
+		containerVolume := util.FindMount(container.VolumeMounts, pkgwebhook.VolumeName)
+		Expect(containerVolume).NotTo(BeNil(), "Volume is not mounted to sidecar container")
+		Expect(containerVolume.MountPath).To(Equal(fixtures.LogDir), "Sidecar container volume mount is not matched")
+
+		nginx := util.FindContainer(&pods[i], fixtures.TestContainerName)
+		Expect(nginx).NotTo(BeNil(), "Nginx container is not found")
+		nginxVolume := util.FindMount(nginx.VolumeMounts, pkgwebhook.VolumeName)
+		Expect(nginxVolume).NotTo(BeNil(), "Volume is not mounted to nginx container")
+		Expect(nginxVolume.MountPath).To(Equal(fixtures.LogDir), "Nginx container volume mount is not matched")
+	}
+
+	err = deleteTestPod(ctx, client, ns)
+	Expect(err).To(BeNil())
 }
