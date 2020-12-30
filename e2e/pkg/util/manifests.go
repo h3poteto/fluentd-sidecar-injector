@@ -55,7 +55,7 @@ func DeleteCRD(ctx context.Context, cfg *rest.Config) error {
 	return delete(ctx, cfg, buf)
 }
 
-// ApplyRBAC applies role based access controle for operator which is located in cmd/config/rbac.
+// ApplyRBAC applies role based access control for operator which is located in cmd/config/rbac.
 func ApplyRBAC(ctx context.Context, cfg *rest.Config) error {
 	p, err := os.Getwd()
 	if err != nil {
@@ -70,7 +70,7 @@ func ApplyRBAC(ctx context.Context, cfg *rest.Config) error {
 	return apply(ctx, cfg, buf)
 }
 
-// DeleteRBAC deletes role based access controle for operator.
+// DeleteRBAC deletes role based access control for operator.
 func DeleteRBAC(ctx context.Context, cfg *rest.Config) error {
 	p, err := os.Getwd()
 	if err != nil {
