@@ -194,7 +194,11 @@ func applyCRD(ctx context.Context, cfg *rest.Config, client *kubernetes.Clientse
 }
 
 func applyManager(ctx context.Context, client *kubernetes.Clientset, ns string) error {
-	sa, clusterRoleBinding, role, roleBinding, deployment := fixtures.NewManagerManifests(ns, "sidecar-injector-manager-role", "ghcr.io/h3poteto/fluentd-sidecar-injector:latest")
+	image := os.Getenv("FLUENTD_SIDECAR_INJECTOR_IMAGE")
+	if image == "" {
+		return fmt.Errorf("FLUENTD_SIDECAR_INJECTOR_IMAGE is required")
+	}
+	sa, clusterRoleBinding, role, roleBinding, deployment := fixtures.NewManagerManifests(ns, "sidecar-injector-manager-role", image)
 	if _, err := client.CoreV1().ServiceAccounts(ns).Create(ctx, sa, metav1.CreateOptions{}); err != nil {
 		return err
 	}
@@ -232,7 +236,11 @@ func applyManager(ctx context.Context, client *kubernetes.Clientset, ns string) 
 }
 
 func deleteManager(ctx context.Context, client *kubernetes.Clientset, ns string) error {
-	sa, clusterRoleBinding, role, roleBinding, deployment := fixtures.NewManagerManifests(ns, "sidecar-injector-manager-role", "ghcr.io/h3poteto/fluentd-sidecar-injector:latest")
+	image := os.Getenv("FLUENTD_SIDECAR_INJECTOR_IMAGE")
+	if image == "" {
+		return fmt.Errorf("FLUENTD_SIDECAR_INJECTOR_IMAGE is required")
+	}
+	sa, clusterRoleBinding, role, roleBinding, deployment := fixtures.NewManagerManifests(ns, "sidecar-injector-manager-role", image)
 	if err := client.AppsV1().Deployments(ns).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); err != nil {
 		return err
 	}

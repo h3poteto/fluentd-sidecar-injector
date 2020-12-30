@@ -94,6 +94,10 @@ func deployment(ns, image string) *appsv1.Deployment {
 										},
 									},
 								},
+								{
+									Name:  "CONTAINER_IMAGE",
+									Value: image,
+								},
 							},
 							TerminationMessagePath:   "",
 							TerminationMessagePolicy: "",
