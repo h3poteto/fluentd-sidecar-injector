@@ -139,6 +139,19 @@ func leaderElectionRole(ns, name string) *rbacv1.Role {
 				APIGroups: []string{""},
 				Resources: []string{"configmaps/status"},
 			},
+			{
+				Verbs: []string{
+					"get",
+					"list",
+					"watch",
+					"create",
+					"update",
+					"patch",
+					"delete",
+				},
+				APIGroups: []string{"coordination.k8s.io"},
+				Resources: []string{"leases"},
+			},
 		},
 	}
 }

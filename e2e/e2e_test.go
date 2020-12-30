@@ -8,8 +8,12 @@ import (
 
 	"github.com/h3poteto/fluentd-sidecar-injector/e2e/pkg/fixtures"
 	"github.com/h3poteto/fluentd-sidecar-injector/e2e/pkg/util"
+	clientset "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/clientset/versioned"
+	"github.com/h3poteto/fluentd-sidecar-injector/pkg/controller/sidecarinjector"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,6 +25,9 @@ import (
 )
 
 var _ = Describe("E2E", func() {
+	var (
+		cfg *rest.Config
+	)
 	BeforeSuite(func() {
 		// Deploy operator controller
 		configfile := os.Getenv("KUBECONFIG")
@@ -31,6 +38,7 @@ var _ = Describe("E2E", func() {
 		if err != nil {
 			panic(err)
 		}
+		cfg = restConfig
 
 		client, err := kubernetes.NewForConfig(restConfig)
 		if err != nil {
@@ -86,8 +94,34 @@ var _ = Describe("E2E", func() {
 	})
 	Describe("Operator", func() {
 		// Check deploying custom resources
-		It("Sample", func() {
-			Expect(true).To(Equal(true))
+		It("Should be deployed a custom resource and created a webhook configuration", func() {
+			ctx := context.Background()
+			ownClient, err := clientset.NewForConfig(cfg)
+			Expect(err).To(BeNil())
+			sidecarInjector := fixtures.NewSidecarInjector("default")
+			_, err = ownClient.OperatorV1alpha1().SidecarInjectors("default").Create(ctx, sidecarInjector, metav1.CreateOptions{})
+			Expect(err).To(BeNil())
+
+			client, err := kubernetes.NewForConfig(cfg)
+			Expect(err).To(BeNil())
+
+			var webhook *admissionregistrationv1.MutatingWebhookConfiguration
+			err = wait.Poll(10*time.Second, 5*time.Minute, func() (bool, error) {
+				res, err := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, sidecarinjector.MutatingNamePrefix+sidecarInjector.Name, metav1.GetOptions{})
+				if err != nil {
+					if kerrors.IsNotFound(err) {
+						return false, nil
+					}
+					return false, err
+				}
+				if res == nil {
+					return false, nil
+				}
+				webhook = res
+				return true, nil
+			})
+			Expect(err).To(BeNil())
+			Expect(webhook).NotTo(BeNil())
 		})
 	})
 	Describe("Webhook", func() {
