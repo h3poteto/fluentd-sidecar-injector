@@ -9,12 +9,14 @@ import (
 )
 
 const (
-	ServiceAccountName = "manager-sa"
-	ManagerName        = "manager"
+	ServiceAccountName   = "manager-sa"
+	ManagerName          = "manager"
+	ManagerPodLabelKey   = "operator.h3poteto.dev"
+	ManagerPodLabelValue = "control-plane"
 )
 
 var ManagerPodLabels = map[string]string{
-	"operator.h3poteto.dev": "control-plane",
+	ManagerPodLabelKey: ManagerPodLabelValue,
 }
 
 func NewManagerManifests(ns, clusterRoleName, image string) (*corev1.ServiceAccount, *rbacv1.ClusterRoleBinding, *rbacv1.Role, *rbacv1.RoleBinding, *appsv1.Deployment) {
