@@ -26,7 +26,7 @@ const (
 	serverCertName = "cert.pem"
 )
 
-func newDeployment(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, secretName string) *appsv1.Deployment {
+func newDeployment(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, secretName, image string) *appsv1.Deployment {
 	env := []corev1.EnvVar{
 		{
 			Name:  "COLLECTOR",
@@ -165,7 +165,7 @@ func newDeployment(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, sec
 					Containers: []corev1.Container{
 						{
 							Name:    "webhook-handler",
-							Image:   "ghcr.io/h3poteto/fluentd-sidecar-injector:latest",
+							Image:   image,
 							Command: nil,
 							Args: []string{
 								"/fluentd-sidecar-injector",

@@ -3,6 +3,7 @@ package sidecarinjector
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	sidecarinjectorv1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/apis/sidecarinjectorcontroller/v1alpha1"
@@ -247,15 +248,19 @@ func (c *Controller) syncHandler(key string) error {
 		return fmt.Errorf(msg)
 	}
 
+	containerImage := os.Getenv("CONTAINER_IMAGE")
+	if containerImage == "" {
+		return fmt.Errorf("The environment variable CONTAINER_IMAGE is required, please set it")
+	}
 	var deployment *appsv1.Deployment
 	deploymentName := sidecarInjector.Status.InjectorDeploymentName
 	if deploymentName == "" {
-		deployment, err = c.createDeployment(ctx, sidecarInjector, secret.Name)
+		deployment, err = c.createDeployment(ctx, sidecarInjector, secret.Name, containerImage)
 	} else {
 		deployment, err = c.deploymentsLister.Deployments(sidecarInjector.Namespace).Get(deploymentName)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				deployment, err = c.createDeployment(ctx, sidecarInjector, secret.Name)
+				deployment, err = c.createDeployment(ctx, sidecarInjector, secret.Name, containerImage)
 			}
 		}
 	}
@@ -369,8 +374,8 @@ func (c *Controller) handleObject(obj interface{}) {
 	}
 }
 
-func (c *Controller) createDeployment(ctx context.Context, sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, secretName string) (*appsv1.Deployment, error) {
-	deployment := newDeployment(sidecarInjector, secretName)
+func (c *Controller) createDeployment(ctx context.Context, sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, secretName, image string) (*appsv1.Deployment, error) {
+	deployment := newDeployment(sidecarInjector, secretName, image)
 	return c.kubeclientset.AppsV1().Deployments(sidecarInjector.Namespace).Create(ctx, deployment, metav1.CreateOptions{})
 }
 
