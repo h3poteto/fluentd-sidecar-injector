@@ -22,8 +22,10 @@ import (
 )
 
 const (
-	serverKeyName  = "key.pem"
-	serverCertName = "cert.pem"
+	serverKeyName           = "key.pem"
+	serverCertName          = "cert.pem"
+	WebhookServerLabelKey   = "sidecarinjectors.operator.h3poteto.dev"
+	WebhookServerLabelValue = "webhook-pod"
 )
 
 func newDeployment(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, secretName, image string) *appsv1.Deployment {
@@ -126,7 +128,7 @@ func newDeployment(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, sec
 			Name:      sidecarInjector.Name + "-handler",
 			Namespace: sidecarInjector.Namespace,
 			Labels: map[string]string{
-				"sidecarinjectors.operator.h3poteto.dev": "webhook-deployment",
+				WebhookServerLabelKey: "webhook-deployment",
 			},
 			Annotations: map[string]string{},
 			OwnerReferences: []metav1.OwnerReference{
@@ -141,13 +143,13 @@ func newDeployment(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, sec
 			Replicas: utilpointer.Int32Ptr(2),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"sidecarinjectors.operator.h3poteto.dev": "webhook-pod",
+					WebhookServerLabelKey: WebhookServerLabelValue,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"sidecarinjectors.operator.h3poteto.dev": "webhook-pod",
+						WebhookServerLabelKey: WebhookServerLabelValue,
 					},
 					Annotations: map[string]string{},
 				},

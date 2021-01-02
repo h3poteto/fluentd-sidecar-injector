@@ -9,6 +9,7 @@ endif
 
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 CODE_GENERATOR=${GOPATH}/src/k8s.io/code-generator
+BRANCH := $(shell git branch --show-current)
 
 build: codegen manifests
 	go build
@@ -53,3 +54,7 @@ CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
+
+push:
+	docker build -f Dockerfile -t ghcr.io/h3poteto/fluentd-sidecar-injector:$(BRANCH) .
+	docker push ghcr.io/h3poteto/fluentd-sidecar-injector:$(BRANCH)

@@ -18,7 +18,10 @@ import (
 
 var annotationPrefix = "fluentd-sidecar-injector.h3poteto.dev"
 
-const containerName = "fluentd-sidecar"
+const (
+	ContainerName = "fluentd-sidecar"
+	VolumeName    = "fluentd-sidecar-injector-logs"
+)
 
 // GeneralEnv is required environment variables to run this server.
 type GeneralEnv struct {
@@ -128,16 +131,15 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 		dockerImage = value
 	}
 
-	volumeName := "fluentd-sidecar-injector-logs"
 	pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
-		Name: volumeName,
+		Name: VolumeName,
 		VolumeSource: corev1.VolumeSource{
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	})
 
 	sidecar := corev1.Container{
-		Name:  containerName,
+		Name:  ContainerName,
 		Image: dockerImage,
 		Resources: corev1.ResourceRequirements{
 			Requests: map[corev1.ResourceName]resource.Quantity{
@@ -246,7 +248,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 	})
 
 	volumeMount := corev1.VolumeMount{
-		Name:      volumeName,
+		Name:      VolumeName,
 		ReadOnly:  false,
 		MountPath: applicationLogDir,
 	}
@@ -342,7 +344,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 			Name: "CPU_REQUEST",
 			ValueFrom: &corev1.EnvVarSource{
 				ResourceFieldRef: &corev1.ResourceFieldSelector{
-					ContainerName: containerName,
+					ContainerName: ContainerName,
 					Resource:      "requests.cpu",
 				},
 			},
@@ -351,7 +353,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 			Name: "CPU_LIMIT",
 			ValueFrom: &corev1.EnvVarSource{
 				ResourceFieldRef: &corev1.ResourceFieldSelector{
-					ContainerName: containerName,
+					ContainerName: ContainerName,
 					Resource:      "limits.cpu",
 				},
 			},
@@ -360,7 +362,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 			Name: "MEM_REQUEST",
 			ValueFrom: &corev1.EnvVarSource{
 				ResourceFieldRef: &corev1.ResourceFieldSelector{
-					ContainerName: containerName,
+					ContainerName: ContainerName,
 					Resource:      "requests.memory",
 				},
 			},
@@ -369,7 +371,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 			Name: "MEM_LIMIT",
 			ValueFrom: &corev1.EnvVarSource{
 				ResourceFieldRef: &corev1.ResourceFieldSelector{
-					ContainerName: containerName,
+					ContainerName: ContainerName,
 					Resource:      "limits.memory",
 				},
 			},
@@ -413,16 +415,15 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 		dockerImage = value
 	}
 
-	volumeName := "fluentd-sidecar-injector-logs"
 	pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
-		Name: volumeName,
+		Name: VolumeName,
 		VolumeSource: corev1.VolumeSource{
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	})
 
 	sidecar := corev1.Container{
-		Name:  containerName,
+		Name:  ContainerName,
 		Image: dockerImage,
 		Resources: corev1.ResourceRequirements{
 			Requests: map[corev1.ResourceName]resource.Quantity{
@@ -510,7 +511,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 	})
 
 	volumeMount := corev1.VolumeMount{
-		Name:      volumeName,
+		Name:      VolumeName,
 		ReadOnly:  false,
 		MountPath: applicationLogDir,
 	}
@@ -595,7 +596,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 			Name: "CPU_REQUEST",
 			ValueFrom: &corev1.EnvVarSource{
 				ResourceFieldRef: &corev1.ResourceFieldSelector{
-					ContainerName: containerName,
+					ContainerName: ContainerName,
 					Resource:      "requests.cpu",
 				},
 			},
@@ -604,7 +605,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 			Name: "CPU_LIMIT",
 			ValueFrom: &corev1.EnvVarSource{
 				ResourceFieldRef: &corev1.ResourceFieldSelector{
-					ContainerName: containerName,
+					ContainerName: ContainerName,
 					Resource:      "limits.cpu",
 				},
 			},
@@ -613,7 +614,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 			Name: "MEM_REQUEST",
 			ValueFrom: &corev1.EnvVarSource{
 				ResourceFieldRef: &corev1.ResourceFieldSelector{
-					ContainerName: containerName,
+					ContainerName: ContainerName,
 					Resource:      "requests.memory",
 				},
 			},
@@ -622,7 +623,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 			Name: "MEM_LIMIT",
 			ValueFrom: &corev1.EnvVarSource{
 				ResourceFieldRef: &corev1.ResourceFieldSelector{
-					ContainerName: containerName,
+					ContainerName: ContainerName,
 					Resource:      "limits.memory",
 				},
 			},

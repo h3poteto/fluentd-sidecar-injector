@@ -37,7 +37,7 @@ import (
 const controllerAgentName = "sidecar-injector-controller"
 const secretNamePrefix = "sidecar-injector-certs-"
 const serviceNamePrefix = "sidecar-injector-"
-const mutatingNamePrefix = "sidecar-injector-webhook-"
+const MutatingNamePrefix = "sidecar-injector-webhook-"
 
 type Controller struct {
 	kubeclientset kubernetes.Interface
@@ -229,7 +229,7 @@ func (c *Controller) syncHandler(key string) error {
 
 	secretName := secretNamePrefix + sidecarInjector.Name
 	serviceName := serviceNamePrefix + sidecarInjector.Name
-	mutatingName := mutatingNamePrefix + sidecarInjector.Name
+	mutatingName := MutatingNamePrefix + sidecarInjector.Name
 
 	var serverCertificate []byte
 	secret, err := c.secretsLister.Secrets(sidecarInjector.Namespace).Get(secretName)
