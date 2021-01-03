@@ -1,6 +1,7 @@
 package sidecarinjector
 
 import (
+	"crypto/tls"
 	"testing"
 
 	sidecarinjectorv1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/apis/sidecarinjectorcontroller/v1alpha1"
@@ -142,4 +143,20 @@ func findEnv(env []corev1.EnvVar, targetName string) *corev1.EnvVar {
 		}
 	}
 	return nil
+}
+
+func TestNewCertificates(t *testing.T) {
+	serviceName := "my-cluster"
+	namespace := "kube-system"
+	key, cert, err := NewCertificates(serviceName, namespace)
+	if err != nil {
+		t.Error(err)
+	}
+	certificate, err := tls.X509KeyPair(cert, key)
+	if err != nil {
+		t.Error(err)
+	}
+	if certificate.Leaf != nil {
+		t.Errorf("Failed to parse certificate: %v", certificate)
+	}
 }
