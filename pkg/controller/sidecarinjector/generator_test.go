@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	sidecarinjectorv1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/apis/sidecarinjectorcontroller/v1alpha1"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -158,5 +159,52 @@ func TestNewCertificates(t *testing.T) {
 	}
 	if certificate.Leaf != nil {
 		t.Errorf("Failed to parse certificate: %v", certificate)
+	}
+}
+
+func TestNewMutatingWebhookConfiguration(t *testing.T) {
+	serviceName := "my-cluster"
+	namespace := "kube-system"
+	_, cert, err := NewCertificates(serviceName, namespace)
+	if err != nil {
+		t.Error(err)
+	}
+
+	injector := &sidecarinjectorv1alpha1.SidecarInjector{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: namespace,
+		},
+		Spec: sidecarinjectorv1alpha1.SidecarInjectorSpec{
+			Collector: "fluent-bit",
+			FluentD:   nil,
+			FluentBit: &sidecarinjectorv1alpha1.FluentBitSpec{},
+		},
+	}
+
+	conf := newMutatingWebhookConfiguration(injector, serviceName, serviceName, cert)
+	if conf.Namespace != namespace {
+		t.Errorf("Namespace is not matched: %s", conf.Namespace)
+	}
+	if conf.Webhooks[0].Name != serviceName+"."+namespace+".svc" {
+		t.Errorf("Webhook name is not matched: %s", conf.Webhooks[0].Name)
+	}
+	if string(conf.Webhooks[0].ClientConfig.CABundle) != string(cert) {
+		t.Errorf("Webhook CABundle is not matched: %v", conf.Webhooks[0].ClientConfig.CABundle)
+	}
+	if *conf.Webhooks[0].ClientConfig.Service.Path != "/mutate" {
+		t.Errorf("Webhook Service path is not matched: %s", *conf.Webhooks[0].ClientConfig.Service.Path)
+	}
+	if conf.Webhooks[0].ClientConfig.Service.Name != serviceName {
+		t.Errorf("Webhook Service name is not matched: %s", conf.Webhooks[0].ClientConfig.Service.Name)
+	}
+	if conf.Webhooks[0].ClientConfig.Service.Namespace != namespace {
+		t.Errorf("Webhook Service namespace is not matched: %s", conf.Webhooks[0].ClientConfig.Service.Namespace)
+	}
+	if *conf.Webhooks[0].FailurePolicy != admissionregistrationv1.Ignore {
+		t.Errorf("Webhook FailurePolicy is not matched: %v", *conf.Webhooks[0].FailurePolicy)
+	}
+	if conf.Webhooks[0].AdmissionReviewVersions[0] != "v1beta1" {
+		t.Errorf("Webhook AdmissionReviewVersions is not matched: %v", conf.Webhooks[0].AdmissionReviewVersions)
 	}
 }
