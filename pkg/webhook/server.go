@@ -44,7 +44,7 @@ type FluentDEnv struct {
 type FluentBitEnv struct {
 	DockerImage       string `envconfig:"DOCKER_IMAGE" default:"ghcr.io/h3poteto/fluentbit-forward:latest"`
 	ApplicationLogDir string `envconfig:"APPLICATION_LOG_DIR"`
-	TagPrefix         string `envconfig:"TAG_PREFIX" defalt:"app"`
+	TagPrefix         string `envconfig:"TAG_PREFIX" default:"app"`
 	AggregatorHost    string `envconfig:"AGGREGATOR_HOST"`
 	AggregatorPort    string `envconfig:"AGGREGATOR_PORT" default:"24224"`
 	CustomEnv         string `envconfig:"CUSTOM_ENV"`

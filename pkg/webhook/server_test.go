@@ -36,7 +36,7 @@ func TestInjectFluentD(t *testing.T) {
 	if result {
 		t.Error("Could not inject sidecar")
 	}
-	if pod.Spec.Volumes[0].Name != VolumeName || pod.Spec.Volumes[0].VolumeSource.EmptyDir == nil {
+	if v := findVolume(pod.Spec.Volumes, VolumeName); v == nil || v.VolumeSource.EmptyDir == nil {
 		t.Errorf("Failed to append volumes to pod: %#v", pod.Spec.Volumes)
 	}
 	if len(pod.Spec.Containers) != 2 {
@@ -80,8 +80,8 @@ func TestInjectFluentD(t *testing.T) {
 		t.Errorf("Container env log dir is not matched: %v", logDir)
 	}
 
-	if container.VolumeMounts[0].MountPath != "/var/log/nginx" {
-		t.Errorf("Container volume mount path is not matched: %v", container.VolumeMounts[0])
+	if log := findMount(container.VolumeMounts, VolumeName); log.MountPath != "/var/log/nginx" {
+		t.Errorf("Container volume mount path is not matched: %v", log)
 	}
 }
 
@@ -145,7 +145,7 @@ func TestInjectFluentDDWithAnnotations(t *testing.T) {
 	}
 	container := findContainer(pod.Spec.Containers, ContainerName)
 	if container == nil {
-		t.Errorf("Failed to injecto sidecar container: %#v", pod.Spec.Containers)
+		t.Errorf("Failed to inject sidecar container: %#v", pod.Spec.Containers)
 		return
 	}
 	if container.Image != "my-fluentd:latest" {
@@ -187,20 +187,23 @@ func TestInjectFluentDDWithAnnotations(t *testing.T) {
 		t.Errorf("Container env log dir is not matched: %v", logDir)
 	}
 
-	if container.VolumeMounts[0].MountPath != "/var/log/nginx" {
-		t.Errorf("Container volume mount path is not matched: %v", container.VolumeMounts[0])
+	if log := findMount(container.VolumeMounts, VolumeName); log.MountPath != "/var/log/nginx" {
+		t.Errorf("Container volume mount path is not matched: %v", log)
+	}
+	if config := findMount(container.VolumeMounts, "my-custom-volume"); config.MountPath != "/fluentd/etc/fluent.conf" {
+		t.Errorf("Container volume mount custom config is not matched: %#v", config)
 	}
 }
 
 func TestInjectFluentDWithEnv(t *testing.T) {
-	os.Setenv("DOCKER_IMAGE", "my-fluentd-image:latest")
-	os.Setenv("APPLICATION_LOG_DIR", "/var/log/nginx")
-	os.Setenv("AGGREGATOR_HOST", "my-aggregator.local")
-	os.Setenv("AGGREGATOR_PORT", "24223")
-	os.Setenv("TIME_FORMAT", "%Y/%m/%d %H:%M:%S")
-	os.Setenv("TIME_KEY", "timestamp")
-	os.Setenv("TAG_PREFIX", "my-app")
-	os.Setenv("LOG_FORMAT", "nginx")
+	os.Setenv("FLUENTD_DOCKER_IMAGE", "my-fluentd-image:latest")
+	os.Setenv("FLUENTD_APPLICATION_LOG_DIR", "/var/log/nginx")
+	os.Setenv("FLUENTD_AGGREGATOR_HOST", "my-aggregator.local")
+	os.Setenv("FLUENTD_AGGREGATOR_PORT", "24223")
+	os.Setenv("FLUENTD_TIME_FORMAT", "%Y/%m/%d %H:%M:%S")
+	os.Setenv("FLUENTD_TIME_KEY", "timestamp")
+	os.Setenv("FLUENTD_TAG_PREFIX", "my-app")
+	os.Setenv("FLUENTD_LOG_FORMAT", "nginx")
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -265,18 +268,260 @@ func TestInjectFluentDWithEnv(t *testing.T) {
 		t.Errorf("Container env log dir is not matched: %v", logDir)
 	}
 
-	if container.VolumeMounts[0].MountPath != "/var/log/nginx" {
-		t.Errorf("Container volume mount path is not matched: %v", container.VolumeMounts[0])
+	if log := findMount(container.VolumeMounts, VolumeName); log.MountPath != "/var/log/nginx" {
+		t.Errorf("Container volume mount path is not matched: %v", log)
 	}
 
-	os.Unsetenv("DOCKER_IMAGE")
-	os.Unsetenv("APPLICATION_LOG_DIR")
-	os.Unsetenv("AGGREGATOR_HOST")
-	os.Unsetenv("AGGREGATOR_PORT")
-	os.Unsetenv("TIME_FORMAT")
-	os.Unsetenv("TIME_KEY")
-	os.Unsetenv("TAG_PREFIX")
-	os.Unsetenv("LOG_FORMAT")
+	os.Unsetenv("FLUENTD_DOCKER_IMAGE")
+	os.Unsetenv("FLUENTD_APPLICATION_LOG_DIR")
+	os.Unsetenv("FLUENTD_AGGREGATOR_HOST")
+	os.Unsetenv("FLUENTD_AGGREGATOR_PORT")
+	os.Unsetenv("FLUENTD_TIME_FORMAT")
+	os.Unsetenv("FLUENTD_TIME_KEY")
+	os.Unsetenv("FLUENTD_TAG_PREFIX")
+	os.Unsetenv("FLUENTD_LOG_FORMAT")
+}
+
+func TestInjectFluentBit(t *testing.T) {
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "",
+			Namespace: "",
+			Annotations: map[string]string{
+				annotationPrefix + "/injection":           "enabled",
+				annotationPrefix + "/collector":           "fluent-bit",
+				annotationPrefix + "/aggregator-host":     "my-aggregator.local",
+				annotationPrefix + "/application-log-dir": "/var/log/nginx",
+			},
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  "nginx",
+					Image: "nginx:latest",
+				},
+			},
+		},
+	}
+
+	result, err := injectFluentBit(pod)
+	if err != nil {
+		t.Error(err)
+	}
+	if result {
+		t.Error("Could not inject sidecar")
+	}
+
+	if v := findVolume(pod.Spec.Volumes, VolumeName); v == nil || v.VolumeSource.EmptyDir == nil {
+		t.Errorf("Failed to append volumes to pod: %#v", pod.Spec.Volumes)
+	}
+	if len(pod.Spec.Containers) != 2 {
+		t.Errorf("Failed to append sidecar container: %#v", pod.Spec.Containers)
+	}
+	container := findContainer(pod.Spec.Containers, ContainerName)
+	if container == nil {
+		t.Errorf("Failed to inject sidecar container: %#v", pod.Spec.Containers)
+		return
+	}
+	if container.Image != "ghcr.io/h3poteto/fluentbit-forward:latest" {
+		t.Errorf("Container image is not matched: %s", container.Image)
+	}
+
+	if refreshInterval := findEnv(container.Env, "REFRESH_INTERVAL"); refreshInterval.Value != "60" {
+		t.Errorf("Container env refresh interval is not matched: %v", refreshInterval)
+	}
+	if rotateWait := findEnv(container.Env, "ROTATE_WAIT"); rotateWait.Value != "5" {
+		t.Errorf("Container env rotate wait is not matched: %v", rotateWait)
+	}
+	if tagPrefix := findEnv(container.Env, "TAG_PREFIX"); tagPrefix.Value != "app" {
+		t.Errorf("Container env tag prefix is not matched: %v", tagPrefix)
+	}
+	if aggregatorHost := findEnv(container.Env, "AGGREGATOR_HOST"); aggregatorHost.Value != "my-aggregator.local" {
+		t.Errorf("Container env aggregator host is not matched: %v", aggregatorHost)
+	}
+	if aggregatorPort := findEnv(container.Env, "AGGREGATOR_PORT"); aggregatorPort.Value != "24224" {
+		t.Errorf("Container env aggregator port is not matched: %v", aggregatorPort)
+	}
+	if logDir := findEnv(container.Env, "APPLICATION_LOG_DIR"); logDir.Value != "/var/log/nginx" {
+		t.Errorf("Container env log dir is not matched: %v", logDir)
+	}
+
+	if log := findMount(container.VolumeMounts, VolumeName); log.MountPath != "/var/log/nginx" {
+		t.Errorf("Container volume mount path is not matched: %v", log)
+	}
+}
+
+func TestInjectFluentBitWithAnnotations(t *testing.T) {
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "",
+			Namespace: "",
+			Annotations: map[string]string{
+				annotationPrefix + "/injection":           "enabled",
+				annotationPrefix + "/collector":           "fluent-bit",
+				annotationPrefix + "/docker-image":        "my-fluent-bit-image:latest",
+				annotationPrefix + "/aggregator-host":     "my-aggregator.local",
+				annotationPrefix + "/application-log-dir": "/var/log/nginx",
+				annotationPrefix + "/expose-port":         "80",
+				annotationPrefix + "/refresh-interval":    "30",
+				annotationPrefix + "/rotate-wait":         "10",
+				annotationPrefix + "/config-volume":       "my-custom-config",
+				annotationPrefix + "/tag-prefix":          "my-app",
+			},
+		},
+		Spec: corev1.PodSpec{
+			Volumes: []corev1.Volume{
+				{
+					Name: "my-custom-config",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "some-config",
+							},
+						},
+					},
+				},
+			},
+			Containers: []corev1.Container{
+				{
+					Name:  "nginx",
+					Image: "nginx:latest",
+				},
+			},
+		},
+	}
+
+	result, err := injectFluentBit(pod)
+	if err != nil {
+		t.Error(err)
+	}
+	if result {
+		t.Error("Could not inject sidecar")
+	}
+
+	if v := findVolume(pod.Spec.Volumes, VolumeName); v == nil || v.VolumeSource.EmptyDir == nil {
+		t.Errorf("Failed to append volumes to pod: %#v", pod.Spec.Volumes)
+	}
+	if len(pod.Spec.Containers) != 2 {
+		t.Errorf("Failed to append sidecar container: %#v", pod.Spec.Containers)
+	}
+	container := findContainer(pod.Spec.Containers, ContainerName)
+	if container == nil {
+		t.Errorf("Failed to inject sidecar container: %#v", pod.Spec.Containers)
+		return
+	}
+	if container.Image != "my-fluent-bit-image:latest" {
+		t.Errorf("Container image is not matched: %s", container.Image)
+	}
+	if container.Ports[0].ContainerPort != int32(80) {
+		t.Errorf("Container port is not matched: %d", container.Ports[0].ContainerPort)
+	}
+
+	if refreshInterval := findEnv(container.Env, "REFRESH_INTERVAL"); refreshInterval.Value != "30" {
+		t.Errorf("Container env refresh interval is not matched: %v", refreshInterval)
+	}
+	if rotateWait := findEnv(container.Env, "ROTATE_WAIT"); rotateWait.Value != "10" {
+		t.Errorf("Container env rotate wait is not matched: %v", rotateWait)
+	}
+	if tagPrefix := findEnv(container.Env, "TAG_PREFIX"); tagPrefix.Value != "my-app" {
+		t.Errorf("Container env tag prefix is not matched: %v", tagPrefix)
+	}
+	if aggregatorHost := findEnv(container.Env, "AGGREGATOR_HOST"); aggregatorHost.Value != "my-aggregator.local" {
+		t.Errorf("Container env aggregator host is not matched: %v", aggregatorHost)
+	}
+	if aggregatorPort := findEnv(container.Env, "AGGREGATOR_PORT"); aggregatorPort.Value != "24224" {
+		t.Errorf("Container env aggregator port is not matched: %v", aggregatorPort)
+	}
+	if logDir := findEnv(container.Env, "APPLICATION_LOG_DIR"); logDir.Value != "/var/log/nginx" {
+		t.Errorf("Container env log dir is not matched: %v", logDir)
+	}
+
+	if log := findMount(container.VolumeMounts, VolumeName); log.MountPath != "/var/log/nginx" {
+		t.Errorf("Container volume mount path is not matched: %v", log)
+	}
+	if config := findMount(container.VolumeMounts, "my-custom-config"); config.MountPath != "/fluent-bit/etc/fluent-bit.conf" {
+		t.Errorf("Container volume mount custom config is not matched: %#v", config)
+	}
+}
+
+func TestInjectFluentBitWithEnv(t *testing.T) {
+	os.Setenv("COLLECTOR", "fluent-bit")
+	os.Setenv("FLUENTBIT_DOCKER_IMAGE", "my-fluent-bit-image:latest")
+	os.Setenv("FLUENTBIT_APPLICATION_LOG_DIR", "/var/log/nginx")
+	os.Setenv("FLUENTBIT_TAG_PREFIX", "my-app")
+	os.Setenv("FLUENTBIT_AGGREGATOR_HOST", "my-aggregator.local")
+	os.Setenv("FLUENTBIT_AGGREGATOR_PORT", "24223")
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "",
+			Namespace: "",
+			Annotations: map[string]string{
+				annotationPrefix + "/injection": "enabled",
+			},
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  "nginx",
+					Image: "nginx:latest",
+				},
+			},
+		},
+	}
+
+	result, err := injectFluentBit(pod)
+	if err != nil {
+		t.Error(err)
+	}
+	if result {
+		t.Error("Could not inject sidecar")
+	}
+
+	if v := findVolume(pod.Spec.Volumes, VolumeName); v == nil || v.VolumeSource.EmptyDir == nil {
+		t.Errorf("Failed to append volumes to pod: %#v", pod.Spec.Volumes)
+	}
+	if len(pod.Spec.Containers) != 2 {
+		t.Errorf("Failed to append sidecar container: %#v", pod.Spec.Containers)
+	}
+	container := findContainer(pod.Spec.Containers, ContainerName)
+	if container == nil {
+		t.Errorf("Failed to inject sidecar container: %#v", pod.Spec.Containers)
+		return
+	}
+	if container.Image != "my-fluent-bit-image:latest" {
+		t.Errorf("Container image is not matched: %s", container.Image)
+	}
+
+	if refreshInterval := findEnv(container.Env, "REFRESH_INTERVAL"); refreshInterval.Value != "60" {
+		t.Errorf("Container env refresh interval is not matched: %v", refreshInterval)
+	}
+	if rotateWait := findEnv(container.Env, "ROTATE_WAIT"); rotateWait.Value != "5" {
+		t.Errorf("Container env rotate wait is not matched: %v", rotateWait)
+	}
+	if tagPrefix := findEnv(container.Env, "TAG_PREFIX"); tagPrefix.Value != "my-app" {
+		t.Errorf("Container env tag prefix is not matched: %v", tagPrefix)
+	}
+	if aggregatorHost := findEnv(container.Env, "AGGREGATOR_HOST"); aggregatorHost.Value != "my-aggregator.local" {
+		t.Errorf("Container env aggregator host is not matched: %v", aggregatorHost)
+	}
+	if aggregatorPort := findEnv(container.Env, "AGGREGATOR_PORT"); aggregatorPort.Value != "24223" {
+		t.Errorf("Container env aggregator port is not matched: %v", aggregatorPort)
+	}
+	if logDir := findEnv(container.Env, "APPLICATION_LOG_DIR"); logDir.Value != "/var/log/nginx" {
+		t.Errorf("Container env log dir is not matched: %v", logDir)
+	}
+
+	if log := findMount(container.VolumeMounts, VolumeName); log.MountPath != "/var/log/nginx" {
+		t.Errorf("Container volume mount path is not matched: %v", log)
+	}
+
+	os.Unsetenv("COLLECTOR")
+	os.Unsetenv("FLUENTBIT_DOCKER_IMAGE")
+	os.Unsetenv("FLUENTBIT_APPLICATION_LOG_DIR")
+	os.Unsetenv("FLUENTBIT_TAG_PREFIX")
+	os.Unsetenv("FLUENTBIT_AGGREGATOR_HOST")
+	os.Unsetenv("FLUENTBIT_AGGREGATOR_PORT")
 }
 
 func findVolume(volumes []corev1.Volume, targetName string) *corev1.Volume {
@@ -301,6 +546,15 @@ func findEnv(env []corev1.EnvVar, targetName string) *corev1.EnvVar {
 	for i := range env {
 		if env[i].Name == targetName {
 			return &env[i]
+		}
+	}
+	return nil
+}
+
+func findMount(mount []corev1.VolumeMount, targetName string) *corev1.VolumeMount {
+	for i := range mount {
+		if mount[i].Name == targetName {
+			return &mount[i]
 		}
 	}
 	return nil
