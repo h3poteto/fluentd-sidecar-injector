@@ -84,7 +84,7 @@ func StartServer(tlsCertFile, tlsKeyFile string) error {
 
 // sidecarInjectMutator mutates requested pod definition to inject fluentd as sidecar.
 // This function retunrs bool, and error to detect stop applying.
-// If return false, API server does not stop applygin. But if return true, API server stop applygin, and say errors to kubectl.
+// If return false, API server does not stop applying. But if return true, API server stop applying, and say errors to kubectl.
 func sidecarInjectMutator(_ context.Context, obj metav1.Object) (bool, error) {
 	logger.Debugf("Receive request")
 
