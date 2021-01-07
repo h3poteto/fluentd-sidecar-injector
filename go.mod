@@ -13,7 +13,7 @@ require (
 	github.com/spf13/viper v1.7.1
 	golang.org/x/sys v0.0.0-20201223074533-0d417f636930 // indirect
 	k8s.io/api v0.19.4
-	k8s.io/apimachinery v0.19.4
+	k8s.io/apimachinery v0.20.1
 	k8s.io/client-go v0.19.4
 	k8s.io/klog/v2 v2.4.0
 	k8s.io/utils v0.0.0-20200729134348-d5654de09c73
