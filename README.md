@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/h3poteto/fluentd-sidecar-injector.svg?style=svg)](https://circleci.com/gh/h3poteto/fluentd-sidecar-injector)
+[![Build](https://github.com/h3poteto/fluentd-sidecar-injector/workflows/Build/badge.svg)](https://github.com/h3poteto/fluentd-sidecar-injector/actions?query=workflow%3ABuild)
 [![E2E](https://github.com/h3poteto/fluentd-sidecar-injector/workflows/E2E/badge.svg)](https://github.com/h3poteto/fluentd-sidecar-injector/actions?query=workflow%3AE2E)
 [![Docker](https://github.com/h3poteto/fluentd-sidecar-injector/workflows/Docker/badge.svg)](https://github.com/h3poteto/fluentd-sidecar-injector/actions?query=workflow%3ADocker)
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/h3poteto/fluentd-sidecar-injector?sort=semver&style=square)](https://github.com/h3poteto/fluentd-sidecar-injector/releases)
