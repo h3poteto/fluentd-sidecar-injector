@@ -44,7 +44,7 @@ type FluentDEnv struct {
 type FluentBitEnv struct {
 	DockerImage       string `envconfig:"DOCKER_IMAGE" default:"ghcr.io/h3poteto/fluentbit-forward:latest"`
 	ApplicationLogDir string `envconfig:"APPLICATION_LOG_DIR"`
-	TagPrefix         string `envconfig:"TAG_PREFIX" defalt:"app"`
+	TagPrefix         string `envconfig:"TAG_PREFIX" default:"app"`
 	AggregatorHost    string `envconfig:"AGGREGATOR_HOST"`
 	AggregatorPort    string `envconfig:"AGGREGATOR_PORT" default:"24224"`
 	CustomEnv         string `envconfig:"CUSTOM_ENV"`
@@ -84,7 +84,7 @@ func StartServer(tlsCertFile, tlsKeyFile string) error {
 
 // sidecarInjectMutator mutates requested pod definition to inject fluentd as sidecar.
 // This function retunrs bool, and error to detect stop applying.
-// If return false, API server does not stop applygin. But if return true, API server stop applygin, and say errors to kubectl.
+// If return false, API server does not stop applying. But if return true, API server stop applying, and say errors to kubectl.
 func sidecarInjectMutator(_ context.Context, obj metav1.Object) (bool, error) {
 	logger.Debugf("Receive request")
 
