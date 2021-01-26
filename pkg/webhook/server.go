@@ -526,8 +526,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 			if name := volumes[i].Name; name == value {
 				sidecar.VolumeMounts = append(sidecar.VolumeMounts, corev1.VolumeMount{
 					Name:      name,
-					MountPath: "/fluent-bit/etc"
-				})
+					MountPath: "/fluent-bit/etc" })
 				break
 			}
 		}
