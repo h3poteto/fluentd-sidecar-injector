@@ -439,7 +439,7 @@ func TestInjectFluentBitWithAnnotations(t *testing.T) {
 	if log := findMount(container.VolumeMounts, VolumeName); log.MountPath != "/var/log/nginx" {
 		t.Errorf("Container volume mount path is not matched: %v", log)
 	}
-	if config := findMount(container.VolumeMounts, "my-custom-config"); config.MountPath != "/fluent-bit/etc/fluent-bit.conf" {
+	if config := findMount(container.VolumeMounts, "my-custom-config"); config.MountPath != "/fluent-bit/etc" {
 		t.Errorf("Container volume mount custom config is not matched: %#v", config)
 	}
 }
