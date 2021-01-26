@@ -12,31 +12,7 @@ env:
   IMAGE_NAME: fluentd-sidecar-injector
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Log into GitHub Container Registry
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.CR_PAT }}
-
-      - name: Build docker image
-        run: |
-          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
-          SHA=${{ github.sha }}
-          docker build . --file Dockerfile --tag $IMAGE_ID:$SHA
-          docker push $IMAGE_ID:$SHA
-
-  # Run tests.
-  # See also https://docs.docker.com/docker-hub/builds/automated-testing/
   e2e-test:
-    needs: build
-
     runs-on: ubuntu-latest
 
     steps:
@@ -44,18 +20,24 @@ jobs:
         with:
           go-version: '^1.15.0'
       - uses: actions/checkout@master
-      - uses: engineerd/setup-kind@v0.5.0
-        with:
-          version: "v0.9.0"
+      - name: Setup kind
+        run: |
+          ./scripts/kind-with-registry.sh
       - name: Info
         run: |
           kubectl cluster-info
+      - name: Build docker image
+        run: |
+          IMAGE_ID=localhost:5000/$IMAGE_NAME
+          SHA=${{ github.sha }}
+          docker build . --file Dockerfile --tag $IMAGE_ID:$SHA
+          docker push $IMAGE_ID:$SHA
       - name: Install ginkgo
         run: |
           go get -u github.com/onsi/ginkgo/ginkgo
       - name: Testing
         run: |
-          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
+          IMAGE_ID=localhost:5000/$IMAGE_NAME
           SHA=${{ github.sha }}
           export FLUENTD_SIDECAR_INJECTOR_IMAGE=$IMAGE_ID:$SHA
           go mod download
