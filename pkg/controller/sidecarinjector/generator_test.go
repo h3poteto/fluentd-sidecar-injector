@@ -13,8 +13,7 @@ import (
 func TestFluentDNewDeployment(t *testing.T) {
 	manifest := &sidecarinjectorv1alpha1.SidecarInjector{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "unit-test",
-			Namespace: "default",
+			Name: "unit-test",
 		},
 		Spec: sidecarinjectorv1alpha1.SidecarInjectorSpec{
 			Collector: "fluentd",
@@ -30,13 +29,14 @@ func TestFluentDNewDeployment(t *testing.T) {
 			FluentBit: nil,
 		},
 	}
+	namespace := "my-managers"
 
-	deployment := newDeployment(manifest, "test-secret", "my-injector-image:tag")
+	deployment := newDeployment(manifest, namespace, "test-secret", "my-injector-image:tag")
 
 	if deployment.Name != "unit-test-handler" {
 		t.Errorf("Deployment name is not matched: %s", deployment.Name)
 	}
-	if deployment.Namespace != "default" {
+	if deployment.Namespace != namespace {
 		t.Errorf("Deployment namespace is not matched: %s", deployment.Namespace)
 	}
 	if *deployment.Spec.Replicas != int32(2) {
@@ -81,8 +81,7 @@ func TestFluentDNewDeployment(t *testing.T) {
 func TestFluentBitNewDeployment(t *testing.T) {
 	manifest := &sidecarinjectorv1alpha1.SidecarInjector{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "unit-test",
-			Namespace: "default",
+			Name: "unit-test",
 		},
 		Spec: sidecarinjectorv1alpha1.SidecarInjectorSpec{
 			Collector: "fluent-bit",
@@ -97,12 +96,14 @@ func TestFluentBitNewDeployment(t *testing.T) {
 		},
 	}
 
-	deployment := newDeployment(manifest, "test-secret", "my-injector-image:tag")
+	namespace := "my-managers"
+
+	deployment := newDeployment(manifest, namespace, "test-secret", "my-injector-image:tag")
 
 	if deployment.Name != "unit-test-handler" {
 		t.Errorf("Deployment name is not matched: %s", deployment.Name)
 	}
-	if deployment.Namespace != "default" {
+	if deployment.Namespace != namespace {
 		t.Errorf("Deployment namespace is not matched: %s", deployment.Namespace)
 	}
 	if *deployment.Spec.Replicas != int32(2) {
@@ -172,8 +173,7 @@ func TestNewMutatingWebhookConfiguration(t *testing.T) {
 
 	injector := &sidecarinjectorv1alpha1.SidecarInjector{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: namespace,
+			Name: "test",
 		},
 		Spec: sidecarinjectorv1alpha1.SidecarInjectorSpec{
 			Collector: "fluent-bit",
@@ -182,10 +182,7 @@ func TestNewMutatingWebhookConfiguration(t *testing.T) {
 		},
 	}
 
-	conf := newMutatingWebhookConfiguration(injector, serviceName, serviceName, cert)
-	if conf.Namespace != namespace {
-		t.Errorf("Namespace is not matched: %s", conf.Namespace)
-	}
+	conf := newMutatingWebhookConfiguration(injector, serviceName, namespace, serviceName, cert)
 	if conf.Webhooks[0].Name != serviceName+"."+namespace+".svc" {
 		t.Errorf("Webhook name is not matched: %s", conf.Webhooks[0].Name)
 	}

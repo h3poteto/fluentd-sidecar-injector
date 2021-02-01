@@ -95,7 +95,15 @@ func deployment(ns, image string) *appsv1.Deployment {
 									},
 								},
 								{
-									Name:  "CONTAINER_IMAGE",
+									Name: "POD_NAMESPACE",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.namespace",
+										},
+									},
+								},
+								{
+									Name:  "WEBHOOK_CONTAINER_IMAGE",
 									Value: image,
 								},
 							},

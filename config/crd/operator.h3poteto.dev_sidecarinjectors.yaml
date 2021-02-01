@@ -14,7 +14,7 @@ spec:
     listKind: SidecarInjectorList
     plural: sidecarinjectors
     singular: sidecarinjector
-  scope: Namespaced
+  scope: Cluster
   versions:
   - name: v1alpha1
     schema:

@@ -28,8 +28,8 @@ type FakeOperatorV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeOperatorV1alpha1) SidecarInjectors(namespace string) v1alpha1.SidecarInjectorInterface {
-	return &FakeSidecarInjectors{c, namespace}
+func (c *FakeOperatorV1alpha1) SidecarInjectors() v1alpha1.SidecarInjectorInterface {
+	return &FakeSidecarInjectors{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

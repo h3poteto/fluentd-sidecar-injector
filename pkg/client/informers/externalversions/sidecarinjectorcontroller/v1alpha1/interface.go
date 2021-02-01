@@ -41,5 +41,5 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 
 // SidecarInjectors returns a SidecarInjectorInformer.
 func (v *version) SidecarInjectors() SidecarInjectorInformer {
-	return &sidecarInjectorInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+	return &sidecarInjectorInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
