@@ -47,8 +47,12 @@ var _ = Describe("E2E", func() {
 			panic(err)
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer cancel()
+
+		if err := waitUntilReady(ctx, client); err != nil {
+			panic(err)
+		}
 
 		if err := applyCRD(ctx, restConfig, client); err != nil {
 			panic(err)
@@ -124,12 +128,13 @@ var _ = Describe("E2E", func() {
 				return
 			}
 
-			setupError = wait.Poll(1*time.Second, 5*time.Minute, func() (bool, error) {
+			setupError = wait.Poll(3*time.Second, 5*time.Minute, func() (bool, error) {
 				res, err := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, sidecarinjector.MutatingNamePrefix+sidecarInjector.Name, metav1.GetOptions{})
 				if err != nil {
 					if kerrors.IsNotFound(err) {
 						return false, nil
 					}
+					klog.Error(err)
 					return false, err
 				}
 				if res == nil {
@@ -146,17 +151,19 @@ var _ = Describe("E2E", func() {
 			if err := ownClient.OperatorV1alpha1().SidecarInjectors(ns).Delete(ctx, sidecarInjector.Name, metav1.DeleteOptions{}); err != nil {
 				panic(err)
 			}
-			err := wait.Poll(1*time.Second, 3*time.Minute, func() (bool, error) {
+			err := wait.Poll(3*time.Second, 5*time.Minute, func() (bool, error) {
 				res, err := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, sidecarinjector.MutatingNamePrefix+sidecarInjector.Name, metav1.GetOptions{})
 				if err != nil {
 					if kerrors.IsNotFound(err) {
 						return true, nil
 					}
+					klog.Error(err)
 					return false, err
 				}
 				if res == nil {
 					return true, nil
 				}
+				klog.Warningf("webhook configuration %s is still living", res.Name)
 				return false, nil
 			})
 			if err != nil {
@@ -182,6 +189,40 @@ var _ = Describe("E2E", func() {
 		})
 	})
 })
+
+func waitUntilReady(ctx context.Context, client *kubernetes.Clientset) error {
+	klog.Info("Waiting until kubernetes cluster is ready")
+	err := wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
+		nodeList, err := client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return false, fmt.Errorf("failed to list nodes: %v", err)
+		}
+		if len(nodeList.Items) == 0 {
+			klog.Warningf("node does not exist yet")
+			return false, nil
+		}
+		for i := range nodeList.Items {
+			n := &nodeList.Items[i]
+			if !nodeIsReady(n) {
+				klog.Warningf("node %s is not ready yet", n.Name)
+				return false, nil
+			}
+		}
+		klog.Info("all nodes are ready")
+		return true, nil
+	})
+	return err
+}
+
+func nodeIsReady(node *corev1.Node) bool {
+	for i := range node.Status.Conditions {
+		con := &node.Status.Conditions[i]
+		if con.Type == corev1.NodeReady && con.Status == corev1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
 
 func applyCRD(ctx context.Context, cfg *rest.Config, client *kubernetes.Clientset) error {
 	klog.Info("applying CRD")
@@ -363,5 +404,26 @@ func spec(
 	}
 
 	err = deleteTestPod(ctx, client, ns)
+	Expect(err).To(BeNil())
+
+	err = wait.Poll(10*time.Second, 5*time.Minute, func() (bool, error) {
+		podList, err := client.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{
+			LabelSelector: fmt.Sprintf("%s=%s", fixtures.TestPodLabelKey, fixtures.TestPodLabelValue),
+		})
+		if err != nil {
+			if kerrors.IsNotFound(err) {
+				return true, nil
+			}
+			return false, err
+		}
+		if len(podList.Items) == 0 {
+			return true, nil
+		}
+		for i := range podList.Items {
+			pod := &podList.Items[i]
+			klog.Warningf("pod %s/%s is still living", pod.Namespace, pod.Name)
+		}
+		return false, nil
+	})
 	Expect(err).To(BeNil())
 }

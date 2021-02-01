@@ -10,6 +10,8 @@ on:
 
 env:
   IMAGE_NAME: fluentd-sidecar-injector
+  KIND_VERSION: v0.9.0
+  KUBECTL_VERSION: v1.19.7
 
 jobs:
   e2e-test:
@@ -20,12 +22,32 @@ jobs:
         with:
           go-version: '^1.15.0'
       - uses: actions/checkout@master
+      - name: Install kind
+        env:
+          KIND_VERSION: ${{ env.KIND_VERSION }}
+          BIN_DIR: ${{ github.workspace }}/tools/
+        run: |
+          mkdir -p $BIN_DIR
+          curl -sSLo "$BIN_DIR/kind" "https://github.com/kubernetes-sigs/kind/releases/download/$KIND_VERSION/kind-linux-amd64"
+          chmod +x "$BIN_DIR/kind"
+          echo "$BIN_DIR" >> "$GITHUB_PATH"
+      - name: Install kubectl
+        env:
+          KUBECTL_VERSION: ${{ env.KUBECTL_VERSION }}
+          BIN_DIR: ${{ github.workspace }}/tools/
+        run: |
+          mkdir -p $BIN_DIR
+          curl -sSLo "$BIN_DIR/kubectl" "https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+          chmod +x "$BIN_DIR/kubectl"
+          echo "$BIN_DIR" >> "$GITHUB_PATH"
       - name: Setup kind
         run: |
           ./scripts/kind-with-registry.sh
       - name: Info
         run: |
+          kind version
           kubectl cluster-info
+          kubectl version
       - name: Build docker image
         run: |
           IMAGE_ID=localhost:5000/$IMAGE_NAME
