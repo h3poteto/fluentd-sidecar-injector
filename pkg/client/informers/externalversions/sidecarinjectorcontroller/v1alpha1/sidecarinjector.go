@@ -42,33 +42,32 @@ type SidecarInjectorInformer interface {
 type sidecarInjectorInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
-	namespace        string
 }
 
 // NewSidecarInjectorInformer constructs a new informer for SidecarInjector type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewSidecarInjectorInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredSidecarInjectorInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewSidecarInjectorInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredSidecarInjectorInformer(client, resyncPeriod, indexers, nil)
 }
 
 // NewFilteredSidecarInjectorInformer constructs a new informer for SidecarInjector type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredSidecarInjectorInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredSidecarInjectorInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OperatorV1alpha1().SidecarInjectors(namespace).List(context.TODO(), options)
+				return client.OperatorV1alpha1().SidecarInjectors().List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OperatorV1alpha1().SidecarInjectors(namespace).Watch(context.TODO(), options)
+				return client.OperatorV1alpha1().SidecarInjectors().Watch(context.TODO(), options)
 			},
 		},
 		&sidecarinjectorcontrollerv1alpha1.SidecarInjector{},
@@ -78,7 +77,7 @@ func NewFilteredSidecarInjectorInformer(client versioned.Interface, namespace st
 }
 
 func (f *sidecarInjectorInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredSidecarInjectorInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+	return NewFilteredSidecarInjectorInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *sidecarInjectorInformer) Informer() cache.SharedIndexInformer {

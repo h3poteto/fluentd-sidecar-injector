@@ -30,6 +30,7 @@ var _ = Describe("E2E", func() {
 	var (
 		cfg *rest.Config
 	)
+	managerNS := "kube-public"
 	BeforeSuite(func() {
 		// Deploy operator controller
 		configfile := os.Getenv("KUBECONFIG")
@@ -64,7 +65,7 @@ var _ = Describe("E2E", func() {
 		klog.Info("applying manager")
 
 		// Apply manager
-		if err := applyManager(ctx, client, "default"); err != nil {
+		if err := applyManager(ctx, client, managerNS); err != nil {
 			panic(err)
 		}
 
@@ -86,7 +87,7 @@ var _ = Describe("E2E", func() {
 		if err != nil {
 			panic(err)
 		}
-		if err := deleteManager(ctx, client, "default"); err != nil {
+		if err := deleteManager(ctx, client, managerNS); err != nil {
 			panic(err)
 		}
 
@@ -105,7 +106,6 @@ var _ = Describe("E2E", func() {
 			collector  string
 			webhook    *admissionregistrationv1.MutatingWebhookConfiguration
 			setupError error
-			ns         string = "default"
 		)
 		JustBeforeEach(func() {
 			ctx := context.Background()
@@ -115,8 +115,8 @@ var _ = Describe("E2E", func() {
 				setupError = err
 				return
 			}
-			sidecarInjector := fixtures.NewSidecarInjector(ns, collector)
-			_, err = ownClient.OperatorV1alpha1().SidecarInjectors(ns).Create(ctx, sidecarInjector, metav1.CreateOptions{})
+			sidecarInjector := fixtures.NewSidecarInjector(collector)
+			_, err = ownClient.OperatorV1alpha1().SidecarInjectors().Create(ctx, sidecarInjector, metav1.CreateOptions{})
 			if err != nil {
 				setupError = err
 				return
@@ -147,8 +147,8 @@ var _ = Describe("E2E", func() {
 
 		AfterEach(func() {
 			ctx := context.Background()
-			sidecarInjector := fixtures.NewSidecarInjector(ns, collector)
-			if err := ownClient.OperatorV1alpha1().SidecarInjectors(ns).Delete(ctx, sidecarInjector.Name, metav1.DeleteOptions{}); err != nil {
+			sidecarInjector := fixtures.NewSidecarInjector(collector)
+			if err := ownClient.OperatorV1alpha1().SidecarInjectors().Delete(ctx, sidecarInjector.Name, metav1.DeleteOptions{}); err != nil {
 				panic(err)
 			}
 			err := wait.Poll(3*time.Second, 5*time.Minute, func() (bool, error) {
@@ -176,7 +176,7 @@ var _ = Describe("E2E", func() {
 				collector = "fluentd"
 			})
 			It("fluentd container is injected", func() {
-				spec(setupError, webhook, client, ns, "ghcr.io/h3poteto/fluentd-forward:latest")
+				spec(setupError, webhook, client, managerNS, "ghcr.io/h3poteto/fluentd-forward:latest")
 			})
 		})
 		Context("Collector is fluent-bit", func() {
@@ -184,7 +184,7 @@ var _ = Describe("E2E", func() {
 				collector = "fluent-bit"
 			})
 			It("fluent-bit container is injectd", func() {
-				spec(setupError, webhook, client, ns, "ghcr.io/h3poteto/fluentbit-forward:latest")
+				spec(setupError, webhook, client, managerNS, "ghcr.io/h3poteto/fluentbit-forward:latest")
 			})
 		})
 	})
@@ -360,12 +360,13 @@ func spec(
 	})
 	Expect(err).To(BeNil())
 
-	_, err = applyTestPod(ctx, client, ns)
+	testPodNS := "default"
+	_, err = applyTestPod(ctx, client, testPodNS)
 	Expect(err).To(BeNil())
 
 	var pods []corev1.Pod
 	err = wait.Poll(10*time.Second, 5*time.Minute, func() (bool, error) {
-		podList, err := client.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{
+		podList, err := client.CoreV1().Pods(testPodNS).List(ctx, metav1.ListOptions{
 			LabelSelector: fmt.Sprintf("%s=%s", fixtures.TestPodLabelKey, fixtures.TestPodLabelValue),
 		})
 		if err != nil {
@@ -403,11 +404,11 @@ func spec(
 		Expect(nginxVolume.MountPath).To(Equal(fixtures.LogDir), "Nginx container volume mount is not matched")
 	}
 
-	err = deleteTestPod(ctx, client, ns)
+	err = deleteTestPod(ctx, client, testPodNS)
 	Expect(err).To(BeNil())
 
 	err = wait.Poll(10*time.Second, 5*time.Minute, func() (bool, error) {
-		podList, err := client.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{
+		podList, err := client.CoreV1().Pods(testPodNS).List(ctx, metav1.ListOptions{
 			LabelSelector: fmt.Sprintf("%s=%s", fixtures.TestPodLabelKey, fixtures.TestPodLabelValue),
 		})
 		if err != nil {

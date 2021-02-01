@@ -34,8 +34,8 @@ type OperatorV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *OperatorV1alpha1Client) SidecarInjectors(namespace string) SidecarInjectorInterface {
-	return newSidecarInjectors(c, namespace)
+func (c *OperatorV1alpha1Client) SidecarInjectors() SidecarInjectorInterface {
+	return newSidecarInjectors(c)
 }
 
 // NewForConfig creates a new OperatorV1alpha1Client for the given config.

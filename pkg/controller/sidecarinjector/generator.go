@@ -28,7 +28,7 @@ const (
 	WebhookServerLabelValue = "webhook-pod"
 )
 
-func newDeployment(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, secretName, image string) *appsv1.Deployment {
+func newDeployment(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, namespace, secretName, image string) *appsv1.Deployment {
 	env := []corev1.EnvVar{
 		{
 			Name:  "COLLECTOR",
@@ -126,7 +126,7 @@ func newDeployment(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, sec
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sidecarInjector.Name + "-handler",
-			Namespace: sidecarInjector.Namespace,
+			Namespace: namespace,
 			Labels: map[string]string{
 				WebhookServerLabelKey: "webhook-deployment",
 			},
@@ -244,15 +244,15 @@ func newDeployment(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, sec
 	return deployment
 }
 
-func newSecret(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, serviceName, secretName string) (*corev1.Secret, []byte, error) {
-	key, cert, err := NewCertificates(serviceName, sidecarInjector.Namespace)
+func newSecret(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, namespace, serviceName, secretName string) (*corev1.Secret, []byte, error) {
+	key, cert, err := NewCertificates(serviceName, namespace)
 	if err != nil {
 		return nil, nil, err
 	}
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secretName,
-			Namespace: sidecarInjector.Namespace,
+			Namespace: namespace,
 			Labels: map[string]string{
 				"sidecarinjectors.operator.h3poteto.dev": "webhook-certs",
 			},
@@ -316,11 +316,11 @@ func NewCertificates(serviceName, namespace string) ([]byte, []byte, error) {
 	return pem.EncodeToMemory(keyPem), pem.EncodeToMemory(certPem), nil
 }
 
-func newService(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, serviceName string) *corev1.Service {
+func newService(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, namespace, serviceName string) *corev1.Service {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
-			Namespace: sidecarInjector.Namespace,
+			Namespace: namespace,
 			Labels: map[string]string{
 				"sidecarinjectors.operator.h3poteto.dev": "webhook-service",
 			},
@@ -350,15 +350,14 @@ func newService(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, servic
 	return service
 }
 
-func newMutatingWebhookConfiguration(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, mutatingName, serviceName string, serverCertificate []byte) *admissionregistrationv1.MutatingWebhookConfiguration {
+func newMutatingWebhookConfiguration(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, mutatingName, serviceNamespace, serviceName string, serverCertificate []byte) *admissionregistrationv1.MutatingWebhookConfiguration {
 	ignore := admissionregistrationv1.Ignore
 	allscopes := admissionregistrationv1.AllScopes
 	equivalent := admissionregistrationv1.Equivalent
 	sideeffect := admissionregistrationv1.SideEffectClassNone
 	mutating := &admissionregistrationv1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      mutatingName,
-			Namespace: sidecarInjector.Namespace,
+			Name: mutatingName,
 			Labels: map[string]string{
 				"sidecarinjectors.operator.h3poteto.dev": "webhook-configuration",
 				"kind":                                   "mutator",
@@ -373,10 +372,10 @@ func newMutatingWebhookConfiguration(sidecarInjector *sidecarinjectorv1alpha1.Si
 		},
 		Webhooks: []admissionregistrationv1.MutatingWebhook{
 			{
-				Name: serviceName + "." + sidecarInjector.Namespace + ".svc",
+				Name: serviceName + "." + serviceNamespace + ".svc",
 				ClientConfig: admissionregistrationv1.WebhookClientConfig{
 					Service: &admissionregistrationv1.ServiceReference{
-						Namespace: sidecarInjector.Namespace,
+						Namespace: serviceNamespace,
 						Name:      serviceName,
 						Path:      utilpointer.StringPtr("/mutate"),
 					},

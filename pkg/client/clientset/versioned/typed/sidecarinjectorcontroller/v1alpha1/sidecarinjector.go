@@ -33,7 +33,7 @@ import (
 // SidecarInjectorsGetter has a method to return a SidecarInjectorInterface.
 // A group's client should implement this interface.
 type SidecarInjectorsGetter interface {
-	SidecarInjectors(namespace string) SidecarInjectorInterface
+	SidecarInjectors() SidecarInjectorInterface
 }
 
 // SidecarInjectorInterface has methods to work with SidecarInjector resources.
@@ -53,14 +53,12 @@ type SidecarInjectorInterface interface {
 // sidecarInjectors implements SidecarInjectorInterface
 type sidecarInjectors struct {
 	client rest.Interface
-	ns     string
 }
 
 // newSidecarInjectors returns a SidecarInjectors
-func newSidecarInjectors(c *OperatorV1alpha1Client, namespace string) *sidecarInjectors {
+func newSidecarInjectors(c *OperatorV1alpha1Client) *sidecarInjectors {
 	return &sidecarInjectors{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -68,7 +66,6 @@ func newSidecarInjectors(c *OperatorV1alpha1Client, namespace string) *sidecarIn
 func (c *sidecarInjectors) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.SidecarInjector, err error) {
 	result = &v1alpha1.SidecarInjector{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("sidecarinjectors").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -85,7 +82,6 @@ func (c *sidecarInjectors) List(ctx context.Context, opts v1.ListOptions) (resul
 	}
 	result = &v1alpha1.SidecarInjectorList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("sidecarinjectors").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -102,7 +98,6 @@ func (c *sidecarInjectors) Watch(ctx context.Context, opts v1.ListOptions) (watc
 	}
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("sidecarinjectors").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -113,7 +108,6 @@ func (c *sidecarInjectors) Watch(ctx context.Context, opts v1.ListOptions) (watc
 func (c *sidecarInjectors) Create(ctx context.Context, sidecarInjector *v1alpha1.SidecarInjector, opts v1.CreateOptions) (result *v1alpha1.SidecarInjector, err error) {
 	result = &v1alpha1.SidecarInjector{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("sidecarinjectors").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(sidecarInjector).
@@ -126,7 +120,6 @@ func (c *sidecarInjectors) Create(ctx context.Context, sidecarInjector *v1alpha1
 func (c *sidecarInjectors) Update(ctx context.Context, sidecarInjector *v1alpha1.SidecarInjector, opts v1.UpdateOptions) (result *v1alpha1.SidecarInjector, err error) {
 	result = &v1alpha1.SidecarInjector{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("sidecarinjectors").
 		Name(sidecarInjector.Name).
 		VersionedParams(&opts, scheme.ParameterCodec).
@@ -141,7 +134,6 @@ func (c *sidecarInjectors) Update(ctx context.Context, sidecarInjector *v1alpha1
 func (c *sidecarInjectors) UpdateStatus(ctx context.Context, sidecarInjector *v1alpha1.SidecarInjector, opts v1.UpdateOptions) (result *v1alpha1.SidecarInjector, err error) {
 	result = &v1alpha1.SidecarInjector{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("sidecarinjectors").
 		Name(sidecarInjector.Name).
 		SubResource("status").
@@ -155,7 +147,6 @@ func (c *sidecarInjectors) UpdateStatus(ctx context.Context, sidecarInjector *v1
 // Delete takes name of the sidecarInjector and deletes it. Returns an error if one occurs.
 func (c *sidecarInjectors) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("sidecarinjectors").
 		Name(name).
 		Body(&opts).
@@ -170,7 +161,6 @@ func (c *sidecarInjectors) DeleteCollection(ctx context.Context, opts v1.DeleteO
 		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("sidecarinjectors").
 		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -183,7 +173,6 @@ func (c *sidecarInjectors) DeleteCollection(ctx context.Context, opts v1.DeleteO
 func (c *sidecarInjectors) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.SidecarInjector, err error) {
 	result = &v1alpha1.SidecarInjector{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("sidecarinjectors").
 		Name(name).
 		SubResource(subresources...).

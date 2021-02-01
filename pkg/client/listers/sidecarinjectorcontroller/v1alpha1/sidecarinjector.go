@@ -31,8 +31,9 @@ type SidecarInjectorLister interface {
 	// List lists all SidecarInjectors in the indexer.
 	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.SidecarInjector, err error)
-	// SidecarInjectors returns an object that can list and get SidecarInjectors.
-	SidecarInjectors(namespace string) SidecarInjectorNamespaceLister
+	// Get retrieves the SidecarInjector from the index for a given name.
+	// Objects returned here must be treated as read-only.
+	Get(name string) (*v1alpha1.SidecarInjector, error)
 	SidecarInjectorListerExpansion
 }
 
@@ -54,41 +55,9 @@ func (s *sidecarInjectorLister) List(selector labels.Selector) (ret []*v1alpha1.
 	return ret, err
 }
 
-// SidecarInjectors returns an object that can list and get SidecarInjectors.
-func (s *sidecarInjectorLister) SidecarInjectors(namespace string) SidecarInjectorNamespaceLister {
-	return sidecarInjectorNamespaceLister{indexer: s.indexer, namespace: namespace}
-}
-
-// SidecarInjectorNamespaceLister helps list and get SidecarInjectors.
-// All objects returned here must be treated as read-only.
-type SidecarInjectorNamespaceLister interface {
-	// List lists all SidecarInjectors in the indexer for a given namespace.
-	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1alpha1.SidecarInjector, err error)
-	// Get retrieves the SidecarInjector from the indexer for a given namespace and name.
-	// Objects returned here must be treated as read-only.
-	Get(name string) (*v1alpha1.SidecarInjector, error)
-	SidecarInjectorNamespaceListerExpansion
-}
-
-// sidecarInjectorNamespaceLister implements the SidecarInjectorNamespaceLister
-// interface.
-type sidecarInjectorNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all SidecarInjectors in the indexer for a given namespace.
-func (s sidecarInjectorNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.SidecarInjector, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.SidecarInjector))
-	})
-	return ret, err
-}
-
-// Get retrieves the SidecarInjector from the indexer for a given namespace and name.
-func (s sidecarInjectorNamespaceLister) Get(name string) (*v1alpha1.SidecarInjector, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
+// Get retrieves the SidecarInjector from the index for a given name.
+func (s *sidecarInjectorLister) Get(name string) (*v1alpha1.SidecarInjector, error) {
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}

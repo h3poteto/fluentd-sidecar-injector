@@ -21,7 +21,3 @@ package v1alpha1
 // SidecarInjectorListerExpansion allows custom methods to be added to
 // SidecarInjectorLister.
 type SidecarInjectorListerExpansion interface{}
-
-// SidecarInjectorNamespaceListerExpansion allows custom methods to be added to
-// SidecarInjectorNamespaceLister.
-type SidecarInjectorNamespaceListerExpansion interface{}

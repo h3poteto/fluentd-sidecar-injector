@@ -2,6 +2,5 @@ apiVersion: operator.h3poteto.dev/v1alpha1
 kind: SidecarInjector
 metadata:
   name: fluentd-injector
-  namespace: kube-system
 spec:
   collector: "fluentd"

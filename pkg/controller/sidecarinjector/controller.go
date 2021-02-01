@@ -211,13 +211,13 @@ func (c *Controller) processNextWorkItem() bool {
 
 func (c *Controller) syncHandler(key string) error {
 	ctx := context.Background()
-	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	_, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
 		return nil
 	}
 
-	sidecarInjector, err := c.sidecarInjectorLister.SidecarInjectors(namespace).Get(name)
+	sidecarInjector, err := c.sidecarInjectorLister.Get(name)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			runtime.HandleError(fmt.Errorf("sidecarInjector '%s' in workqueue no longer exists", key))
@@ -227,15 +227,20 @@ func (c *Controller) syncHandler(key string) error {
 		return err
 	}
 
+	ownerNamespace := os.Getenv("POD_NAMESPACE")
+	if ownerNamespace == "" {
+		return fmt.Errorf("POD_NAMESPACE is required, so please set downward API")
+	}
+
 	secretName := secretNamePrefix + sidecarInjector.Name
 	serviceName := serviceNamePrefix + sidecarInjector.Name
 	mutatingName := MutatingNamePrefix + sidecarInjector.Name
 
 	var serverCertificate []byte
-	secret, err := c.secretsLister.Secrets(sidecarInjector.Namespace).Get(secretName)
+	secret, err := c.secretsLister.Secrets(ownerNamespace).Get(secretName)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			secret, serverCertificate, err = c.createSecret(ctx, sidecarInjector, serviceName, secretName)
+			secret, serverCertificate, err = c.createSecret(ctx, sidecarInjector, ownerNamespace, serviceName, secretName)
 		}
 	}
 	if err != nil {
@@ -248,19 +253,19 @@ func (c *Controller) syncHandler(key string) error {
 		return fmt.Errorf(msg)
 	}
 
-	containerImage := os.Getenv("CONTAINER_IMAGE")
+	containerImage := os.Getenv("WEBHOOK_CONTAINER_IMAGE")
 	if containerImage == "" {
-		return fmt.Errorf("The environment variable CONTAINER_IMAGE is required, please set it")
+		return fmt.Errorf("The environment variable WEBHOOK_CONTAINER_IMAGE is required, please set it")
 	}
 	var deployment *appsv1.Deployment
 	deploymentName := sidecarInjector.Status.InjectorDeploymentName
 	if deploymentName == "" {
-		deployment, err = c.createDeployment(ctx, sidecarInjector, secret.Name, containerImage)
+		deployment, err = c.createDeployment(ctx, sidecarInjector, ownerNamespace, secret.Name, containerImage)
 	} else {
-		deployment, err = c.deploymentsLister.Deployments(sidecarInjector.Namespace).Get(deploymentName)
+		deployment, err = c.deploymentsLister.Deployments(ownerNamespace).Get(deploymentName)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				deployment, err = c.createDeployment(ctx, sidecarInjector, secret.Name, containerImage)
+				deployment, err = c.createDeployment(ctx, sidecarInjector, ownerNamespace, secret.Name, containerImage)
 			}
 		}
 	}
@@ -275,10 +280,10 @@ func (c *Controller) syncHandler(key string) error {
 		return fmt.Errorf(msg)
 	}
 
-	service, err := c.serviceLister.Services(sidecarInjector.Namespace).Get(serviceName)
+	service, err := c.serviceLister.Services(ownerNamespace).Get(serviceName)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			service, err = c.createService(ctx, sidecarInjector, serviceName)
+			service, err = c.createService(ctx, sidecarInjector, ownerNamespace, serviceName)
 		}
 	}
 
@@ -295,7 +300,7 @@ func (c *Controller) syncHandler(key string) error {
 	mutating, err := c.mutatingLister.Get(mutatingName)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			mutating, err = c.createMutatingWebhookConfiguration(ctx, sidecarInjector, mutatingName, service.Name, serverCertificate)
+			mutating, err = c.createMutatingWebhookConfiguration(ctx, sidecarInjector, mutatingName, ownerNamespace, service.Name, serverCertificate)
 		}
 	}
 
@@ -327,7 +332,7 @@ func (c *Controller) updateSidecarInjectorStatus(ctx context.Context, sidecarInj
 	sidecarInjectorCopy.Status.InjectorDeploymentName = deployment.Name
 	sidecarInjectorCopy.Status.InjectorPodCount = deployment.Status.AvailableReplicas
 	sidecarInjectorCopy.Status.InjectorServiceReady = serviceReady
-	_, err := c.ownclientset.OperatorV1alpha1().SidecarInjectors(sidecarInjector.Namespace).Update(ctx, sidecarInjectorCopy, metav1.UpdateOptions{})
+	_, err := c.ownclientset.OperatorV1alpha1().SidecarInjectors().Update(ctx, sidecarInjectorCopy, metav1.UpdateOptions{})
 	return err
 }
 
@@ -363,7 +368,7 @@ func (c *Controller) handleObject(obj interface{}) {
 			return
 		}
 
-		sidecarInjector, err := c.sidecarInjectorLister.SidecarInjectors(object.GetNamespace()).Get(ownerRef.Name)
+		sidecarInjector, err := c.sidecarInjectorLister.Get(ownerRef.Name)
 		if err != nil {
 			klog.V(4).Infof("ignoring orphaned object '%s' of foo '%s'", object.GetSelfLink(), ownerRef.Name)
 			return
@@ -374,29 +379,29 @@ func (c *Controller) handleObject(obj interface{}) {
 	}
 }
 
-func (c *Controller) createDeployment(ctx context.Context, sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, secretName, image string) (*appsv1.Deployment, error) {
-	deployment := newDeployment(sidecarInjector, secretName, image)
-	return c.kubeclientset.AppsV1().Deployments(sidecarInjector.Namespace).Create(ctx, deployment, metav1.CreateOptions{})
+func (c *Controller) createDeployment(ctx context.Context, sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, namespace, secretName, image string) (*appsv1.Deployment, error) {
+	deployment := newDeployment(sidecarInjector, namespace, secretName, image)
+	return c.kubeclientset.AppsV1().Deployments(deployment.Namespace).Create(ctx, deployment, metav1.CreateOptions{})
 }
 
-func (c *Controller) createSecret(ctx context.Context, sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, serviceName, secretName string) (*corev1.Secret, []byte, error) {
-	secret, serverCertificate, err := newSecret(sidecarInjector, serviceName, secretName)
+func (c *Controller) createSecret(ctx context.Context, sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, namespace, serviceName, secretName string) (*corev1.Secret, []byte, error) {
+	secret, serverCertificate, err := newSecret(sidecarInjector, namespace, serviceName, secretName)
 	if err != nil {
 		return nil, nil, err
 	}
-	res, err := c.kubeclientset.CoreV1().Secrets(sidecarInjector.Namespace).Create(ctx, secret, metav1.CreateOptions{})
+	res, err := c.kubeclientset.CoreV1().Secrets(secret.Namespace).Create(ctx, secret, metav1.CreateOptions{})
 	if err != nil {
 		return nil, nil, err
 	}
 	return res, serverCertificate, nil
 }
 
-func (c *Controller) createService(ctx context.Context, sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, serviceName string) (*corev1.Service, error) {
-	service := newService(sidecarInjector, serviceName)
-	return c.kubeclientset.CoreV1().Services(sidecarInjector.Namespace).Create(ctx, service, metav1.CreateOptions{})
+func (c *Controller) createService(ctx context.Context, sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, namespace, serviceName string) (*corev1.Service, error) {
+	service := newService(sidecarInjector, namespace, serviceName)
+	return c.kubeclientset.CoreV1().Services(service.Namespace).Create(ctx, service, metav1.CreateOptions{})
 }
 
-func (c *Controller) createMutatingWebhookConfiguration(ctx context.Context, sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, mutatingName, serviceName string, serverCetriicate []byte) (*admissionregistrationv1.MutatingWebhookConfiguration, error) {
-	mutating := newMutatingWebhookConfiguration(sidecarInjector, mutatingName, serviceName, serverCetriicate)
+func (c *Controller) createMutatingWebhookConfiguration(ctx context.Context, sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, mutatingName, namespace, serviceName string, serverCetriicate []byte) (*admissionregistrationv1.MutatingWebhookConfiguration, error) {
+	mutating := newMutatingWebhookConfiguration(sidecarInjector, mutatingName, namespace, serviceName, serverCetriicate)
 	return c.kubeclientset.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(ctx, mutating, metav1.CreateOptions{})
 }
