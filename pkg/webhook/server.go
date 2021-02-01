@@ -263,9 +263,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 			if name := volumes[i].Name; name == value {
 				sidecar.VolumeMounts = append(sidecar.VolumeMounts, corev1.VolumeMount{
 					Name:      name,
-					MountPath: "/fluentd/etc/fluent.conf",
-					SubPath:   "fluent.conf",
-				})
+					MountPath: "/fluentd/etc" })
 				break
 			}
 		}
