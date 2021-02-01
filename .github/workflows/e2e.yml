@@ -10,8 +10,8 @@ on:
 
 env:
   IMAGE_NAME: fluentd-sidecar-injector
-  KIND_VERSION: v0.9.0
-  KUBECTL_VERSION: v1.19.7
+  KIND_VERSION: v0.10.0
+  KUBECTL_VERSION: v1.20.2
 
 jobs:
   e2e-test:
