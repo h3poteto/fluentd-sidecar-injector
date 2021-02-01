@@ -288,7 +288,14 @@ Please prepare a Kubernetes cluster to install this, and export `KUBECONFIG`.
 $ export KUBECONFIG=$HOME/.kube/config
 ```
 
-At first, please install CRDs.
+At first, build docker and push it.
+
+```
+$ docker build -t my-docker-registry/fluentd-sidecar-injector:experimental .
+$ docker push my-docker-registry/fluentd-sidecar-injector:experimental
+```
+
+Next, install CRDs.
 
 ```
 $ make install
@@ -297,6 +304,8 @@ $ make install
 Next, please run controller in local.
 
 ```
+$ export WEBHOOK_CONTAINER_IMAGE=my-docker-registry/fluentd-sidecar-injector:experimental
+$ export POD_NAMESPACE=my-namespace
 $ make run
 ```
 
