@@ -9,7 +9,7 @@ require (
 	github.com/onsi/gomega v1.10.5
 	github.com/sirupsen/logrus v1.7.0
 	github.com/slok/kubewebhook v0.11.0
-	github.com/spf13/cobra v1.1.1
+	github.com/spf13/cobra v1.1.2
 	github.com/spf13/viper v1.7.1
 	k8s.io/api v0.20.2
 	k8s.io/apimachinery v0.20.2
