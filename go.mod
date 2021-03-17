@@ -4,8 +4,7 @@ go 1.15
 
 require (
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/nxadm/tail v1.4.6 // indirect
-	github.com/onsi/ginkgo v1.15.0
+	github.com/onsi/ginkgo v1.15.2
 	github.com/onsi/gomega v1.10.5
 	github.com/sirupsen/logrus v1.7.0
 	github.com/slok/kubewebhook v0.11.0
