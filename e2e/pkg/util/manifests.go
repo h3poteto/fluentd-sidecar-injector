@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -22,7 +23,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
-	"sigs.k8s.io/yaml"
 )
 
 // ApplyCRD applies custom resource definitions for sidecar-injector which is located in cmd/config/crd.
