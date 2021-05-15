@@ -12,7 +12,7 @@ CODE_GENERATOR=${GOPATH}/src/k8s.io/code-generator
 BRANCH := $(shell git branch --show-current)
 
 build: codegen manifests
-	go build
+	go build -a -tags netgo -installsuffix netgo --ldflags '-extldflags "-static"'
 
 run: codegen manifests
 	go run ./main.go controller sidecar-injector
