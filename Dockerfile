@@ -1,16 +1,10 @@
-FROM golang:1.16.3-alpine3.12 as builder
+FROM golang:1.16 as builder
 
 ENV CGO_ENABLED="0" \
     GOOS="linux" \
     GOARCH="amd64"
 
 WORKDIR /go/src/github.com/h3poteto/fluentd-sidecar-injector
-
-RUN set -ex && \
-    apk add --no-cache \
-    make \
-    git \
-    bash
 
 COPY go.mod .
 COPY go.sum .
@@ -20,7 +14,9 @@ COPY . .
 RUN set -ex && \
     make build
 
-FROM alpine:latest
-COPY --from=builder /go/src/github.com/h3poteto/fluentd-sidecar-injector/fluentd-sidecar-injector /fluentd-sidecar-injector
+FROM gcr.io/distroless/static:nonroot
+WORKDIR /
+COPY --from=builder /go/src/github.com/h3poteto/fluentd-sidecar-injector/fluentd-sidecar-injector .
+USER nonroot:nonroot
 
 CMD ["/fluentd-sidecar-injector"]
