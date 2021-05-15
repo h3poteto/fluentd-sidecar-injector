@@ -11,7 +11,7 @@ func versionCmd() *cobra.Command {
 		Use:   "version",
 		Short: "Print the version number",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("fluentd-sidecar-injector v0.4.2")
+			fmt.Println("fluentd-sidecar-injector v0.5.1")
 		},
 	}
 	return cmd
