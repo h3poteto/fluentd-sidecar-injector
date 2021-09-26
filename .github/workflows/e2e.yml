@@ -10,8 +10,8 @@ on:
 
 env:
   IMAGE_NAME: fluentd-sidecar-injector
-  KIND_VERSION: v0.10.0
-  KUBECTL_VERSION: v1.20.2
+  KIND_VERSION: v0.11.1
+  KUBECTL_VERSION: v1.21.5
 
 jobs:
   e2e-test:
@@ -57,6 +57,9 @@ jobs:
       - name: Install ginkgo
         run: |
           go get -u github.com/onsi/ginkgo/ginkgo
+      - name: Check nodes
+        run: |
+          kubectl get node
       - name: Testing
         run: |
           IMAGE_ID=localhost:5000/$IMAGE_NAME

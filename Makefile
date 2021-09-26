@@ -9,6 +9,8 @@ endif
 
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 CODE_GENERATOR=${GOPATH}/src/k8s.io/code-generator
+CODE_GENERATOR_TAG=v0.20.11
+CONTROLLER_TOOLS_TAG=v0.5.0
 BRANCH := $(shell git branch --show-current)
 
 build: codegen manifests
@@ -37,7 +39,7 @@ manifests: controller-gen
 
 code-generator:
 ifeq (, $(wildcard ${CODE_GENERATOR}))
-	git clone https://github.com/kubernetes/code-generator.git ${CODE_GENERATOR}
+	git clone https://github.com/kubernetes/code-generator.git ${CODE_GENERATOR} -b ${CODE_GENERATOR_TAG} --depth 1
 endif
 
 controller-gen:
@@ -47,7 +49,7 @@ ifeq (, $(shell which controller-gen))
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
 	cd $$CONTROLLER_GEN_TMP_DIR ;\
 	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1 ;\
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_TOOLS_TAG} ;\
 	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 	}
 CONTROLLER_GEN=$(GOBIN)/controller-gen
@@ -55,6 +57,6 @@ else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
-push:
+gpush:
 	docker build -f Dockerfile -t ghcr.io/h3poteto/fluentd-sidecar-injector:$(BRANCH) .
 	docker push ghcr.io/h3poteto/fluentd-sidecar-injector:$(BRANCH)
