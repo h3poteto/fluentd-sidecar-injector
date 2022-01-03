@@ -9,8 +9,8 @@ endif
 
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 CODE_GENERATOR=${GOPATH}/src/k8s.io/code-generator
-CODE_GENERATOR_TAG=v0.20.11
-CONTROLLER_TOOLS_TAG=v0.5.0
+CODE_GENERATOR_TAG=v0.21.8
+CONTROLLER_TOOLS_TAG=v0.6.1
 BRANCH := $(shell git branch --show-current)
 
 build: codegen manifests
@@ -28,6 +28,8 @@ uninstall: manifests
 clean:
 	rm -f ./*.crt
 	rm -f ./*.key
+	rm -f $(GOBIN)/controller-gen
+	rm -rf $(CODE_GENERATOR)
 
 codegen: code-generator
 	${CODE_GENERATOR}/generate-groups.sh "deepcopy,client,informer,lister" \
