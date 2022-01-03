@@ -17,6 +17,10 @@ jobs:
   e2e-test:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        k8s-version: [1.20.7, 1.21.2, 1.22.4]
+
     steps:
       - uses: actions/setup-go@v2
         with:
@@ -40,7 +44,9 @@ jobs:
           curl -sSLo "$BIN_DIR/kubectl" "https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
           chmod +x "$BIN_DIR/kubectl"
           echo "$BIN_DIR" >> "$GITHUB_PATH"
-      - name: Setup kind
+      - name: Setup kind ${{ matrix.k8s-version }}
+        env:
+          K8S_VERSION: ${{ matrix.k8s-version }}
         run: |
           ./scripts/kind-with-registry.sh
       - name: Info
