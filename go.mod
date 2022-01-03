@@ -9,8 +9,8 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/slok/kubewebhook v0.11.0
 	github.com/spf13/cobra v1.1.3
-	github.com/spf13/viper v1.7.1
-	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
+	github.com/spf13/viper v1.10.1
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.21.8
 	k8s.io/apimachinery v0.21.8
 	k8s.io/client-go v0.21.8
