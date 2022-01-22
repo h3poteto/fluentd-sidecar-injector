@@ -73,6 +73,7 @@ type Controller struct {
 // +kubebuilder:rbac:groups="",resources=secrets;services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=mutatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups="cert-manager.io",resources=issuers;certificates,verbs=get;list;watch;create;update;patch;delete
 
 func NewController(
 	kubeclientset kubernetes.Interface,

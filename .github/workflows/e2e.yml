@@ -54,6 +54,9 @@ jobs:
           kind version
           kubectl cluster-info
           kubectl version
+      - name: Install cert-manager
+        run: |
+          kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.6.1/cert-manager.yaml
       - name: Build docker image
         run: |
           IMAGE_ID=localhost:5000/$IMAGE_NAME

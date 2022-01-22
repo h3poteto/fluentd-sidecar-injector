@@ -19,9 +19,9 @@ var ManagerPodLabels = map[string]string{
 	ManagerPodLabelKey: ManagerPodLabelValue,
 }
 
-func NewManagerManifests(ns, clusterRoleName, image string) (*corev1.ServiceAccount, *rbacv1.ClusterRoleBinding, *rbacv1.Role, *rbacv1.RoleBinding, *appsv1.Deployment) {
+func NewManagerManifests(ns, clusterRoleName, image string, useCertManager bool) (*corev1.ServiceAccount, *rbacv1.ClusterRoleBinding, *rbacv1.Role, *rbacv1.RoleBinding, *appsv1.Deployment) {
 	leName := "leader-election"
-	return serviceAccount(ns), roleBinding(ns, clusterRoleName), leaderElectionRole(ns, leName), leaderElectionRoleBinding(ns, leName), deployment(ns, image)
+	return serviceAccount(ns), roleBinding(ns, clusterRoleName), leaderElectionRole(ns, leName), leaderElectionRoleBinding(ns, leName), deployment(ns, image, useCertManager)
 }
 
 func serviceAccount(ns string) *corev1.ServiceAccount {
@@ -54,7 +54,15 @@ func roleBinding(ns, roleName string) *rbacv1.ClusterRoleBinding {
 	}
 }
 
-func deployment(ns, image string) *appsv1.Deployment {
+func deployment(ns, image string, useCertManager bool) *appsv1.Deployment {
+	command := []string{
+		"/fluentd-sidecar-injector",
+		"controller",
+		"sidecar-injector",
+	}
+	if useCertManager {
+		command = append(command, "--use-cert-manager")
+	}
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ManagerName,
@@ -80,11 +88,7 @@ func deployment(ns, image string) *appsv1.Deployment {
 							Name:    "manager",
 							Image:   image,
 							Command: nil,
-							Args: []string{
-								"/fluentd-sidecar-injector",
-								"controller",
-								"sidecar-injector",
-							},
+							Args:    command,
 							Env: []corev1.EnvVar{
 								{
 									Name: "POD_NAME",

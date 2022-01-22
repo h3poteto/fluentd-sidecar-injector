@@ -9,20 +9,24 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	"gopkg.in/yaml.v3"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	serializeryaml "k8s.io/apimachinery/pkg/runtime/serializer/yaml"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
+	"k8s.io/klog/v2"
 )
 
 // ApplyCRD applies custom resource definitions for sidecar-injector which is located in cmd/config/crd.
@@ -96,7 +100,26 @@ func apply(ctx context.Context, cfg *rest.Config, data []byte) error {
 
 func delete(ctx context.Context, cfg *rest.Config, data []byte) error {
 	return restAction(ctx, cfg, data, func(ctx context.Context, dr dynamic.ResourceInterface, obj *unstructured.Unstructured, data []byte) error {
-		return dr.Delete(ctx, obj.GetName(), metav1.DeleteOptions{})
+		if err := dr.Delete(ctx, obj.GetName(), metav1.DeleteOptions{}); err != nil {
+			return err
+		}
+		err := wait.Poll(3*time.Second, 5*time.Minute, func() (bool, error) {
+			res, err := dr.Get(ctx, obj.GetName(), metav1.GetOptions{})
+			if kerrors.IsNotFound(err) {
+				return true, nil
+			} else if err != nil {
+				klog.Error(err)
+				return false, err
+			}
+			if res == nil {
+				return true, nil
+			}
+			klog.Warningf("resource %s is still living", res.GetName())
+			return false, nil
+		})
+
+		return err
+
 	})
 }
 

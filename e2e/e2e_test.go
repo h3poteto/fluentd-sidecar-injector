@@ -28,7 +28,9 @@ import (
 
 var _ = Describe("E2E", func() {
 	var (
-		cfg *rest.Config
+		cfg       *rest.Config
+		ownClient *clientset.Clientset
+		client    *kubernetes.Clientset
 	)
 	managerNS := "kube-public"
 	BeforeSuite(func() {
@@ -37,13 +39,17 @@ var _ = Describe("E2E", func() {
 		if configfile == "" {
 			configfile = "$HOME/.kube/config"
 		}
-		restConfig, err := clientcmd.BuildConfigFromFlags("", os.ExpandEnv(configfile))
+		var err error
+		cfg, err = clientcmd.BuildConfigFromFlags("", os.ExpandEnv(configfile))
 		if err != nil {
 			panic(err)
 		}
-		cfg = restConfig
 
-		client, err := kubernetes.NewForConfig(restConfig)
+		client, err = kubernetes.NewForConfig(cfg)
+		if err != nil {
+			panic(err)
+		}
+		ownClient, err = clientset.NewForConfig(cfg)
 		if err != nil {
 			panic(err)
 		}
@@ -54,137 +60,92 @@ var _ = Describe("E2E", func() {
 		if err := waitUntilReady(ctx, client); err != nil {
 			panic(err)
 		}
-
-		if err := applyCRD(ctx, restConfig, client); err != nil {
-			panic(err)
-		}
-		klog.Info("applying RBAC")
-		if err := util.ApplyRBAC(ctx, restConfig); err != nil {
-			panic(err)
-		}
-		klog.Info("applying manager")
-
-		// Apply manager
-		if err := applyManager(ctx, client, managerNS); err != nil {
-			panic(err)
-		}
-
 	})
-	AfterSuite(func() {
-		// Delete operator controller and custom resources
-		configfile := os.Getenv("KUBECONFIG")
-		if configfile == "" {
-			configfile = "$HOME/.kube/config"
-		}
-		restConfig, err := clientcmd.BuildConfigFromFlags("", os.ExpandEnv(configfile))
-		if err != nil {
-			panic(err)
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-		defer cancel()
 
-		client, err := kubernetes.NewForConfig(restConfig)
-		if err != nil {
-			panic(err)
-		}
-		if err := deleteManager(ctx, client, managerNS); err != nil {
-			panic(err)
-		}
-
-		if err := util.DeleteRBAC(ctx, restConfig); err != nil {
-			panic(err)
-		}
-		if err := util.DeleteCRD(ctx, restConfig); err != nil {
-			panic(err)
-		}
-
-	})
 	Describe("Webhook is created and sidecar containers are injected", func() {
 		var (
-			ownClient  *clientset.Clientset
-			client     *kubernetes.Clientset
-			collector  string
-			webhook    *admissionregistrationv1.MutatingWebhookConfiguration
-			setupError error
+			useCertManager bool
+			collector      string
+			webhook        *admissionregistrationv1.MutatingWebhookConfiguration
+			setupError     error
 		)
+
 		JustBeforeEach(func() {
-			ctx := context.Background()
-			var err error
-			ownClient, err = clientset.NewForConfig(cfg)
-			if err != nil {
-				setupError = err
-				return
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			if err := applyCRD(ctx, cfg, client); err != nil {
+				panic(err)
 			}
-			sidecarInjector := fixtures.NewSidecarInjector(collector)
-			_, err = ownClient.OperatorV1alpha1().SidecarInjectors().Create(ctx, sidecarInjector, metav1.CreateOptions{})
-			if err != nil {
-				setupError = err
-				return
+			klog.Info("applying RBAC")
+			if err := util.ApplyRBAC(ctx, cfg); err != nil {
+				panic(err)
+			}
+			klog.Info("applying manager")
+
+			// Apply manager
+			if err := applyManager(ctx, client, managerNS, useCertManager); err != nil {
+				panic(err)
 			}
 
-			client, err = kubernetes.NewForConfig(cfg)
-			if err != nil {
-				setupError = err
-				return
-			}
-
-			setupError = wait.Poll(3*time.Second, 5*time.Minute, func() (bool, error) {
-				res, err := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, sidecarinjector.MutatingNamePrefix+sidecarInjector.Name, metav1.GetOptions{})
-				if err != nil {
-					if kerrors.IsNotFound(err) {
-						return false, nil
-					}
-					klog.Error(err)
-					return false, err
-				}
-				if res == nil {
-					return false, nil
-				}
-				webhook = res
-				return true, nil
-			})
+			webhook, setupError = applySidecarInjector(context.Background(), client, ownClient, collector)
 		})
 
 		AfterEach(func() {
 			ctx := context.Background()
-			sidecarInjector := fixtures.NewSidecarInjector(collector)
-			if err := ownClient.OperatorV1alpha1().SidecarInjectors().Delete(ctx, sidecarInjector.Name, metav1.DeleteOptions{}); err != nil {
-				panic(err)
-			}
-			err := wait.Poll(3*time.Second, 5*time.Minute, func() (bool, error) {
-				res, err := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, sidecarinjector.MutatingNamePrefix+sidecarInjector.Name, metav1.GetOptions{})
-				if err != nil {
-					if kerrors.IsNotFound(err) {
-						return true, nil
-					}
-					klog.Error(err)
-					return false, err
-				}
-				if res == nil {
-					return true, nil
-				}
-				klog.Warningf("webhook configuration %s is still living", res.Name)
-				return false, nil
-			})
+			err := deleteSidecarInjector(ctx, client, ownClient, collector)
 			if err != nil {
 				panic(err)
 			}
+
+			// Delete operator controller and custom resources
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			if err := deleteManager(ctx, client, managerNS); err != nil {
+				panic(err)
+			}
+
+			if err := util.DeleteRBAC(ctx, cfg); err != nil {
+				panic(err)
+			}
+			if err := util.DeleteCRD(ctx, cfg); err != nil {
+				panic(err)
+			}
+		})
+		Context("Use self managed certificate", func() {
+			BeforeEach(func() {
+				useCertManager = false
+			})
+			Context("Collector is fluentd", func() {
+				BeforeEach(func() {
+					collector = "fluentd"
+				})
+				It("fluentd container is injected", func() {
+					spec(setupError, webhook, client, managerNS, "ghcr.io/h3poteto/fluentd-forward:latest")
+				})
+			})
+			Context("Collector is fluent-bit", func() {
+				BeforeEach(func() {
+					collector = "fluent-bit"
+				})
+				It("fluent-bit container is injectd", func() {
+					spec(setupError, webhook, client, managerNS, "ghcr.io/h3poteto/fluentbit-forward:latest")
+				})
+			})
 		})
 
-		Context("Collector is fluentd", func() {
+		Context("Use cert-manager", func() {
 			BeforeEach(func() {
-				collector = "fluentd"
+				useCertManager = true
 			})
-			It("fluentd container is injected", func() {
-				spec(setupError, webhook, client, managerNS, "ghcr.io/h3poteto/fluentd-forward:latest")
-			})
-		})
-		Context("Collector is fluent-bit", func() {
-			BeforeEach(func() {
-				collector = "fluent-bit"
-			})
-			It("fluent-bit container is injectd", func() {
-				spec(setupError, webhook, client, managerNS, "ghcr.io/h3poteto/fluentbit-forward:latest")
+			Context("Collector is fluentd", func() {
+				BeforeEach(func() {
+					collector = "fluentd"
+				})
+				It("fluentd container is injected", func() {
+					spec(setupError, webhook, client, managerNS, "ghcr.io/h3poteto/fluentd-forward:latest")
+				})
 			})
 		})
 	})
@@ -234,12 +195,12 @@ func applyCRD(ctx context.Context, cfg *rest.Config, client *kubernetes.Clientse
 	return err
 }
 
-func applyManager(ctx context.Context, client *kubernetes.Clientset, ns string) error {
+func applyManager(ctx context.Context, client *kubernetes.Clientset, ns string, useCertManager bool) error {
 	image := os.Getenv("FLUENTD_SIDECAR_INJECTOR_IMAGE")
 	if image == "" {
 		return fmt.Errorf("FLUENTD_SIDECAR_INJECTOR_IMAGE is required")
 	}
-	sa, clusterRoleBinding, role, roleBinding, deployment := fixtures.NewManagerManifests(ns, "sidecar-injector-manager-role", image)
+	sa, clusterRoleBinding, role, roleBinding, deployment := fixtures.NewManagerManifests(ns, "sidecar-injector-manager-role", image, useCertManager)
 	if _, err := client.CoreV1().ServiceAccounts(ns).Create(ctx, sa, metav1.CreateOptions{}); err != nil {
 		return err
 	}
@@ -281,7 +242,7 @@ func deleteManager(ctx context.Context, client *kubernetes.Clientset, ns string)
 	if image == "" {
 		return fmt.Errorf("FLUENTD_SIDECAR_INJECTOR_IMAGE is required")
 	}
-	sa, clusterRoleBinding, role, roleBinding, deployment := fixtures.NewManagerManifests(ns, "sidecar-injector-manager-role", image)
+	sa, clusterRoleBinding, role, roleBinding, deployment := fixtures.NewManagerManifests(ns, "sidecar-injector-manager-role", image, false)
 	if err := client.AppsV1().Deployments(ns).Delete(ctx, deployment.Name, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
@@ -329,6 +290,55 @@ func applyTestPod(ctx context.Context, client *kubernetes.Clientset, ns string) 
 func deleteTestPod(ctx context.Context, client *kubernetes.Clientset, ns string) error {
 	nginx := fixtures.NewNginx(ns)
 	return client.AppsV1().Deployments(ns).Delete(ctx, nginx.Name, metav1.DeleteOptions{})
+}
+
+func applySidecarInjector(ctx context.Context, client *kubernetes.Clientset, ownClient *clientset.Clientset, collector string) (*admissionregistrationv1.MutatingWebhookConfiguration, error) {
+	sidecarInjector := fixtures.NewSidecarInjector(collector)
+	_, err := ownClient.OperatorV1alpha1().SidecarInjectors().Create(ctx, sidecarInjector, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var webhook *admissionregistrationv1.MutatingWebhookConfiguration
+	err = wait.Poll(3*time.Second, 5*time.Minute, func() (bool, error) {
+		res, err := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, sidecarinjector.MutatingNamePrefix+sidecarInjector.Name, metav1.GetOptions{})
+		if err != nil {
+			if kerrors.IsNotFound(err) {
+				return false, nil
+			}
+			klog.Error(err)
+			return false, err
+		}
+		if res == nil {
+			return false, nil
+		}
+		webhook = res
+		return true, nil
+	})
+	return webhook, err
+}
+
+func deleteSidecarInjector(ctx context.Context, client *kubernetes.Clientset, ownClient *clientset.Clientset, collector string) error {
+	sidecarInjector := fixtures.NewSidecarInjector(collector)
+	if err := ownClient.OperatorV1alpha1().SidecarInjectors().Delete(ctx, sidecarInjector.Name, metav1.DeleteOptions{}); err != nil {
+		return err
+	}
+	err := wait.Poll(3*time.Second, 5*time.Minute, func() (bool, error) {
+		res, err := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, sidecarinjector.MutatingNamePrefix+sidecarInjector.Name, metav1.GetOptions{})
+		if err != nil {
+			if kerrors.IsNotFound(err) {
+				return true, nil
+			}
+			klog.Error(err)
+			return false, err
+		}
+		if res == nil {
+			return true, nil
+		}
+		klog.Warningf("webhook configuration %s is still living", res.Name)
+		return false, nil
+	})
+	return err
 }
 
 func spec(
