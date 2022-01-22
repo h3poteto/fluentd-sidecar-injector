@@ -1,0 +1,20 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .CertificateName }}
+  namespace: {{ .Namespace }}
+  ownerReferences:
+  - apiVersion: {{ .OwnerAPIVersion }}
+    blockOwnerDeletion: true
+    controller: true
+    kind: {{ .OwnerKind }}
+    name: {{ .OwnerName }}
+    uid: {{ .OwnerUID }}
+spec:
+  dnsNames:
+  - {{ .ServiceName }}.{{ .Namespace }}.svc
+  - {{ .ServiceName }}.{{ .Namespace }}.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: {{ .IssuerName }}
+  secretName: {{ .CertSecretName }}

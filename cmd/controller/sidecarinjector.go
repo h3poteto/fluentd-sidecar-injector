@@ -18,6 +18,8 @@ import (
 )
 
 type sidecarInjectorOption struct {
+	useCertManager bool
+	workers        int
 }
 
 func sidecarInjectorCmd() *cobra.Command {
@@ -27,6 +29,9 @@ func sidecarInjectorCmd() *cobra.Command {
 		Short: "Start SidecarInjector controller",
 		Run:   o.run,
 	}
+	flags := cmd.Flags()
+	flags.BoolVar(&o.useCertManager, "use-cert-manager", false, "If you already use cert-manager, please enable this flag. If false, this controller generates its own certificate for webhook server. ")
+	flags.IntVarP(&o.workers, "workers", "w", 1, "Concurrent workers number for controller.")
 
 	return cmd
 }
@@ -35,10 +40,12 @@ func (o *sidecarInjectorOption) run(cmd *cobra.Command, args []string) {
 	kubeconfig, masterURL := controllerConfig()
 	if kubeconfig != "" {
 		klog.Infof("Using kubeconfig: %s", kubeconfig)
+	} else {
+		klog.Info("Using in-cluster config")
 	}
 	cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
-		klog.Fatalf("Error building kubeconfig: %s", err.Error())
+		klog.Fatalf("Error building rest config: %s", err.Error())
 	}
 
 	ns := os.Getenv("POD_NAMESPACE")
@@ -58,20 +65,27 @@ func (o *sidecarInjectorOption) run(cmd *cobra.Command, args []string) {
 			klog.Fatalf("Error building own clientset: %s", err.Error())
 		}
 
+		dynamicClient, err := sidecarinjector.NewDynamicClient(clientConfig, kubeClient)
+		if err != nil {
+			klog.Fatalf("Failed to build dynamic client: %s", err.Error())
+		}
+
 		kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
 		ownInformerFactory := informers.NewSharedInformerFactory(ownClient, time.Second*30)
 
-		controller := sidecarinjector.NewController(kubeClient, ownClient,
-			kubeInformerFactory.Apps().V1().Deployments(),
-			kubeInformerFactory.Core().V1().Secrets(),
-			kubeInformerFactory.Core().V1().Services(),
-			kubeInformerFactory.Admissionregistration().V1().MutatingWebhookConfigurations(),
-			ownInformerFactory.Operator().V1alpha1().SidecarInjectors())
+		controller := sidecarinjector.NewController(
+			kubeClient,
+			ownClient,
+			dynamicClient,
+			kubeInformerFactory,
+			ownInformerFactory,
+			o.useCertManager,
+		)
 
 		go kubeInformerFactory.Start(stopCh)
 		go ownInformerFactory.Start(stopCh)
 
-		if err = controller.Run(2, stopCh); err != nil {
+		if err = controller.Run(o.workers, stopCh); err != nil {
 			klog.Fatalf("Error running controller: %s", err.Error())
 		}
 	})

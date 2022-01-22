@@ -22,8 +22,9 @@ import (
 )
 
 const (
-	serverKeyName           = "key.pem"
-	serverCertName          = "cert.pem"
+	// According to cert-manager's certificate name.
+	serverKeyName           = "tls.key"
+	serverCertName          = "tls.crt"
 	WebhookServerLabelKey   = "sidecarinjectors.operator.h3poteto.dev"
 	WebhookServerLabelValue = "webhook-pod"
 )
@@ -350,7 +351,7 @@ func newService(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, namesp
 	return service
 }
 
-func newMutatingWebhookConfiguration(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, mutatingName, serviceNamespace, serviceName string, serverCertificate []byte) *admissionregistrationv1.MutatingWebhookConfiguration {
+func newMutatingWebhookConfiguration(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, mutatingName, serviceNamespace, serviceName string) *admissionregistrationv1.MutatingWebhookConfiguration {
 	ignore := admissionregistrationv1.Ignore
 	allscopes := admissionregistrationv1.AllScopes
 	equivalent := admissionregistrationv1.Equivalent
@@ -362,6 +363,7 @@ func newMutatingWebhookConfiguration(sidecarInjector *sidecarinjectorv1alpha1.Si
 				"sidecarinjectors.operator.h3poteto.dev": "webhook-configuration",
 				"kind":                                   "mutator",
 			},
+			Annotations: map[string]string{},
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(sidecarInjector, schema.GroupVersionKind{
 					Group:   sidecarinjectorv1alpha1.SchemeGroupVersion.Group,
@@ -379,7 +381,6 @@ func newMutatingWebhookConfiguration(sidecarInjector *sidecarinjectorv1alpha1.Si
 						Name:      serviceName,
 						Path:      utilpointer.StringPtr("/mutate"),
 					},
-					CABundle: serverCertificate,
 				},
 				Rules: []admissionregistrationv1.RuleWithOperations{
 					{
