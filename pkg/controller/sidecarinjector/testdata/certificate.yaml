@@ -1,0 +1,20 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: my-certificate
+  namespace: sandbox
+  ownerReferences:
+  - apiVersion: operator.h3poteto.dev/v1alpha1
+    blockOwnerDeletion: true
+    controller: true
+    kind: SidecarInjector
+    name: my-injector
+    uid: sample-uid
+spec:
+  dnsNames:
+  - webhook-injector.sandbox.svc
+  - webhook-injector.sandbox.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: selfsigned
+  secretName: serving-cert
