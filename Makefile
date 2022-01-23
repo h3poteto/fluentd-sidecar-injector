@@ -17,7 +17,7 @@ build: codegen manifests
 	go build -a -tags netgo -installsuffix netgo --ldflags '-extldflags "-static"'
 
 run: codegen manifests
-	go run ./main.go controller sidecar-injector
+	go run ./main.go controller sidecar-injector --kubeconfig=${KUBECONFIG}
 
 install: manifests
 	kubectl apply -f ./config/crd

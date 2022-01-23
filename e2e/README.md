@@ -17,6 +17,11 @@ $ kind create cluster --config ./kind.yaml --kubeconfig ~/.kube/config-kind
 $ export KUBECONFIG=~/.kube/config-kind
 ```
 
+Then install cert-manager.
+```
+$ kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.6.1/cert-manager.yaml
+```
+
 ## Build docker image and push
 
 Build docker image.

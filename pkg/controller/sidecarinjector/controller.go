@@ -1,6 +1,7 @@
 package sidecarinjector
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -9,7 +10,7 @@ import (
 	sidecarinjectorv1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/apis/sidecarinjectorcontroller/v1alpha1"
 	clientset "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/clientset/versioned"
 	ownscheme "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/clientset/versioned/scheme"
-	informers "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/informers/externalversions/sidecarinjectorcontroller/v1alpha1"
+	informers "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/informers/externalversions"
 	listers "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/listers/sidecarinjectorcontroller/v1alpha1"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -17,11 +18,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	admissionregistrationinformers "k8s.io/client-go/informers/admissionregistration/v1"
-	appsinformers "k8s.io/client-go/informers/apps/v1"
-	coreinformers "k8s.io/client-go/informers/core/v1"
+	"k8s.io/apimachinery/pkg/util/yaml"
+	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -38,10 +41,13 @@ const controllerAgentName = "sidecar-injector-controller"
 const secretNamePrefix = "sidecar-injector-certs-"
 const serviceNamePrefix = "sidecar-injector-"
 const MutatingNamePrefix = "sidecar-injector-webhook-"
+const issuerNamePrefix = "sidecar-injector-issuer-"
+const certificateNamePrefix = "sidecar-injecter-certificate-"
 
 type Controller struct {
 	kubeclientset kubernetes.Interface
 	ownclientset  clientset.Interface
+	dynamicClient *DynamicClient
 
 	deploymentsLister     appslisters.DeploymentLister
 	deploymentsSynced     cache.InformerSynced
@@ -57,6 +63,8 @@ type Controller struct {
 	workqueue workqueue.RateLimitingInterface
 
 	recorder record.EventRecorder
+
+	useCertManager bool
 }
 
 // +kubebuilder:rbac:groups=operator.h3poteto.dev,resources=sidecarinjectors,verbs=get;list;watch;create;update;patch;delete
@@ -65,16 +73,16 @@ type Controller struct {
 // +kubebuilder:rbac:groups="",resources=secrets;services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=mutatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups="cert-manager.io",resources=issuers;certificates,verbs=get;list;watch;create;update;patch;delete
 
 func NewController(
 	kubeclientset kubernetes.Interface,
 	ownclientset clientset.Interface,
-	deploymentInformer appsinformers.DeploymentInformer,
-	secretInformer coreinformers.SecretInformer,
-	serviceInformer coreinformers.ServiceInformer,
-	mutatingInformer admissionregistrationinformers.MutatingWebhookConfigurationInformer,
-	sidecarInjectorInformer informers.SidecarInjectorInformer) *Controller {
-
+	dynamicClient *DynamicClient,
+	kubeInformerFactory kubeinformers.SharedInformerFactory,
+	ownInformerFactory informers.SharedInformerFactory,
+	useCertManager bool,
+) *Controller {
 	err := ownscheme.AddToScheme(scheme.Scheme)
 	if err != nil {
 		klog.Error(err)
@@ -86,9 +94,16 @@ func NewController(
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeclientset.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 
+	deploymentInformer := kubeInformerFactory.Apps().V1().Deployments()
+	secretInformer := kubeInformerFactory.Core().V1().Secrets()
+	serviceInformer := kubeInformerFactory.Core().V1().Services()
+	mutatingInformer := kubeInformerFactory.Admissionregistration().V1().MutatingWebhookConfigurations()
+	sidecarInjectorInformer := ownInformerFactory.Operator().V1alpha1().SidecarInjectors()
+
 	controller := &Controller{
 		kubeclientset:         kubeclientset,
 		ownclientset:          ownclientset,
+		dynamicClient:         dynamicClient,
 		deploymentsLister:     deploymentInformer.Lister(),
 		deploymentsSynced:     deploymentInformer.Informer().HasSynced,
 		secretsLister:         secretInformer.Lister(),
@@ -101,6 +116,7 @@ func NewController(
 		sidecarInjectorSynced: sidecarInjectorInformer.Informer().HasSynced,
 		workqueue:             workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), controllerAgentName),
 		recorder:              recorder,
+		useCertManager:        useCertManager,
 	}
 
 	klog.Infof("Setting up event handlers")
@@ -149,7 +165,7 @@ func NewController(
 }
 
 func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
-	defer runtime.HandleCrash()
+	defer utilruntime.HandleCrash()
 	defer c.workqueue.ShutDown()
 
 	klog.Info("Starting SidecarInjector controller")
@@ -190,7 +206,7 @@ func (c *Controller) processNextWorkItem() bool {
 
 		if key, ok = obj.(string); !ok {
 			c.workqueue.Forget(obj)
-			runtime.HandleError(fmt.Errorf("expected string in workqueue but got %#v", obj))
+			utilruntime.HandleError(fmt.Errorf("expected string in workqueue but got %#v", obj))
 			return nil
 		}
 		if err := c.syncHandler(key); err != nil {
@@ -202,7 +218,7 @@ func (c *Controller) processNextWorkItem() bool {
 	}(obj)
 
 	if err != nil {
-		runtime.HandleError(err)
+		utilruntime.HandleError(err)
 		return true
 	}
 
@@ -213,14 +229,14 @@ func (c *Controller) syncHandler(key string) error {
 	ctx := context.Background()
 	_, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
+		utilruntime.HandleError(fmt.Errorf("invalid resource key: %s", key))
 		return nil
 	}
 
 	sidecarInjector, err := c.sidecarInjectorLister.Get(name)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			runtime.HandleError(fmt.Errorf("sidecarInjector '%s' in workqueue no longer exists", key))
+			utilruntime.HandleError(fmt.Errorf("sidecarInjector '%s' in workqueue no longer exists", key))
 			return nil
 		}
 
@@ -236,23 +252,63 @@ func (c *Controller) syncHandler(key string) error {
 	serviceName := serviceNamePrefix + sidecarInjector.Name
 	mutatingName := MutatingNamePrefix + sidecarInjector.Name
 
-	var serverCertificate []byte
-	secret, err := c.secretsLister.Secrets(ownerNamespace).Get(secretName)
-	if err != nil {
+	if c.useCertManager {
+		// Iusser
+		issuerName := issuerNamePrefix + sidecarInjector.Name
+		certificateName := certificateNamePrefix + sidecarInjector.Name
+		if err := c.applyIssuer(ctx, issuerName, ownerNamespace, sidecarInjector); err != nil {
+			return err
+		}
+		// Certificate
+		if err := c.applyCertificate(ctx, secretName, certificateName, serviceName, issuerName, ownerNamespace, sidecarInjector); err != nil {
+			return err
+		}
+		// WebhookConfiguration
+		mutating, err := c.mutatingLister.Get(mutatingName)
+		if errors.IsNotFound(err) {
+			mutating, err = c.createMutatingWebhookConfigurationWithCertManager(ctx, sidecarInjector, mutatingName, ownerNamespace, serviceName, certificateName)
+		}
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+		if !metav1.IsControlledBy(mutating, sidecarInjector) {
+			msg := fmt.Sprintf("Resource %q already exists and is not managed by SidecarInjector", mutating.Name)
+			c.recorder.Event(sidecarInjector, corev1.EventTypeWarning, "ErrResourceExists", msg)
+			return fmt.Errorf(msg)
+		}
+	} else {
+		// Secrets and Certificate
+		var serverCertificate []byte
+		secret, err := c.secretsLister.Secrets(ownerNamespace).Get(secretName)
 		if errors.IsNotFound(err) {
 			secret, serverCertificate, err = c.createSecret(ctx, sidecarInjector, ownerNamespace, serviceName, secretName)
 		}
-	}
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
+		if !metav1.IsControlledBy(secret, sidecarInjector) {
+			msg := fmt.Sprintf("Resource %q already exists and is not managed by SidecarInjector", secret.Name)
+			c.recorder.Event(sidecarInjector, corev1.EventTypeWarning, "ErrResourceExists", msg)
+			return fmt.Errorf(msg)
+		}
+
+		// WebhookConfiguration
+		mutating, err := c.mutatingLister.Get(mutatingName)
+		if errors.IsNotFound(err) {
+			mutating, err = c.createMutatingWebhookConfiguration(ctx, sidecarInjector, mutatingName, ownerNamespace, serviceName, serverCertificate)
+		}
+		if err != nil {
+			return err
+		}
+		if !metav1.IsControlledBy(mutating, sidecarInjector) {
+			msg := fmt.Sprintf("Resource %q already exists and is not managed by SidecarInjector", mutating.Name)
+			c.recorder.Event(sidecarInjector, corev1.EventTypeWarning, "ErrResourceExists", msg)
+			return fmt.Errorf(msg)
+		}
 	}
 
-	if !metav1.IsControlledBy(secret, sidecarInjector) {
-		msg := fmt.Sprintf("Resource %q already exists and is not managed by SidecarInjector", secret.Name)
-		c.recorder.Event(sidecarInjector, corev1.EventTypeWarning, "ErrResourceExists", msg)
-		return fmt.Errorf(msg)
-	}
-
+	// Deployment
 	containerImage := os.Getenv("WEBHOOK_CONTAINER_IMAGE")
 	if containerImage == "" {
 		return fmt.Errorf("The environment variable WEBHOOK_CONTAINER_IMAGE is required, please set it")
@@ -260,62 +316,41 @@ func (c *Controller) syncHandler(key string) error {
 	var deployment *appsv1.Deployment
 	deploymentName := sidecarInjector.Status.InjectorDeploymentName
 	if deploymentName == "" {
-		deployment, err = c.createDeployment(ctx, sidecarInjector, ownerNamespace, secret.Name, containerImage)
+		deployment, err = c.createDeployment(ctx, sidecarInjector, ownerNamespace, secretName, containerImage)
 	} else {
 		deployment, err = c.deploymentsLister.Deployments(ownerNamespace).Get(deploymentName)
-		if err != nil {
-			if errors.IsNotFound(err) {
-				deployment, err = c.createDeployment(ctx, sidecarInjector, ownerNamespace, secret.Name, containerImage)
-			}
+		if errors.IsNotFound(err) {
+			deployment, err = c.createDeployment(ctx, sidecarInjector, ownerNamespace, secretName, containerImage)
 		}
 	}
-
 	if err != nil {
+		klog.Error(err)
 		return err
 	}
-
 	if !metav1.IsControlledBy(deployment, sidecarInjector) {
 		msg := fmt.Sprintf("Resource %q already exists and is not managed by SidecarInjector", deployment.Name)
 		c.recorder.Event(sidecarInjector, corev1.EventTypeWarning, "ErrResourceExists", msg)
 		return fmt.Errorf(msg)
 	}
 
+	// Service
 	service, err := c.serviceLister.Services(ownerNamespace).Get(serviceName)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			service, err = c.createService(ctx, sidecarInjector, ownerNamespace, serviceName)
-		}
+	if errors.IsNotFound(err) {
+		service, err = c.createService(ctx, sidecarInjector, ownerNamespace, serviceName)
 	}
-
 	if err != nil {
+		klog.Error(err)
 		return err
 	}
-
 	if !metav1.IsControlledBy(service, sidecarInjector) {
 		msg := fmt.Sprintf("Resource %q already exists and is not managed by SidecarInjector", service.Name)
 		c.recorder.Event(sidecarInjector, corev1.EventTypeWarning, "ErrResourceExists", msg)
 		return fmt.Errorf(msg)
 	}
 
-	mutating, err := c.mutatingLister.Get(mutatingName)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			mutating, err = c.createMutatingWebhookConfiguration(ctx, sidecarInjector, mutatingName, ownerNamespace, service.Name, serverCertificate)
-		}
-	}
-
-	if err != nil {
-		return err
-	}
-
-	if !metav1.IsControlledBy(mutating, sidecarInjector) {
-		msg := fmt.Sprintf("Resource %q already exists and is not managed by SidecarInjector", mutating.Name)
-		c.recorder.Event(sidecarInjector, corev1.EventTypeWarning, "ErrResourceExists", msg)
-		return fmt.Errorf(msg)
-	}
-
 	err = c.updateSidecarInjectorStatus(ctx, sidecarInjector, deployment, service)
 	if err != nil {
+		klog.Error(err)
 		return err
 	}
 
@@ -340,7 +375,7 @@ func (c *Controller) enqueueSidecarInjector(obj interface{}) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
-		runtime.HandleError(err)
+		utilruntime.HandleError(err)
 		return
 	}
 	c.workqueue.AddRateLimited(key)
@@ -352,12 +387,12 @@ func (c *Controller) handleObject(obj interface{}) {
 	if object, ok = obj.(metav1.Object); !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
-			runtime.HandleError(fmt.Errorf("error decoding object, invalid type"))
+			utilruntime.HandleError(fmt.Errorf("error decoding object, invalid type"))
 			return
 		}
 		object, ok = tombstone.Obj.(metav1.Object)
 		if !ok {
-			runtime.HandleError(fmt.Errorf("error decoding object tombstone, invalid type"))
+			utilruntime.HandleError(fmt.Errorf("error decoding object tombstone, invalid type"))
 			return
 		}
 		klog.V(4).Infof("Recovered deleted object '%s' from tombstone", object.GetName())
@@ -402,6 +437,74 @@ func (c *Controller) createService(ctx context.Context, sidecarInjector *sidecar
 }
 
 func (c *Controller) createMutatingWebhookConfiguration(ctx context.Context, sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, mutatingName, namespace, serviceName string, serverCetriicate []byte) (*admissionregistrationv1.MutatingWebhookConfiguration, error) {
-	mutating := newMutatingWebhookConfiguration(sidecarInjector, mutatingName, namespace, serviceName, serverCetriicate)
+	mutating := newMutatingWebhookConfiguration(sidecarInjector, mutatingName, namespace, serviceName)
+	for i := range mutating.Webhooks {
+		mutating.Webhooks[i].ClientConfig.CABundle = serverCetriicate
+	}
 	return c.kubeclientset.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(ctx, mutating, metav1.CreateOptions{})
+}
+
+func (c *Controller) createMutatingWebhookConfigurationWithCertManager(ctx context.Context, sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, mutatingName, namespace, serviceName, certificateName string) (*admissionregistrationv1.MutatingWebhookConfiguration, error) {
+	mutating := newMutatingWebhookConfiguration(sidecarInjector, mutatingName, namespace, serviceName)
+	mutating.Annotations["cert-manager.io/inject-ca-from"] = namespace + "/" + certificateName
+
+	return c.kubeclientset.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(ctx, mutating, metav1.CreateOptions{})
+}
+
+func (c *Controller) applyIssuer(ctx context.Context, issuerName, namespace string, sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector) error {
+	ownerRef := metav1.NewControllerRef(sidecarInjector, schema.GroupVersionKind{
+		Group:   sidecarinjectorv1alpha1.SchemeGroupVersion.Group,
+		Version: sidecarinjectorv1alpha1.SchemeGroupVersion.Version,
+		Kind:    "SidecarInjector",
+	})
+	manifest, err := issuerManifest(issuerName, namespace, ownerRef)
+	if err != nil {
+		klog.Error(err)
+		return err
+	}
+
+	return c.applyManifest(ctx, manifest)
+}
+
+func (c *Controller) applyCertificate(ctx context.Context, secretName, certificateName, serviceName, issuerName, namespace string, sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector) error {
+	ownerRef := metav1.NewControllerRef(sidecarInjector, schema.GroupVersionKind{
+		Group:   sidecarinjectorv1alpha1.SchemeGroupVersion.Group,
+		Version: sidecarinjectorv1alpha1.SchemeGroupVersion.Version,
+		Kind:    "SidecarInjector",
+	})
+	manifest, err := certificateManifest(secretName, certificateName, serviceName, issuerName, namespace, ownerRef)
+	if err != nil {
+		klog.Error(err)
+		return err
+	}
+
+	return c.applyManifest(ctx, manifest)
+}
+
+func (c *Controller) applyManifest(ctx context.Context, manifest *bytes.Buffer) error {
+	decoder := yaml.NewYAMLOrJSONDecoder(manifest, 100)
+	for {
+		var rawObj runtime.RawExtension
+		if err := decoder.Decode(&rawObj); err != nil {
+			break
+		}
+
+		obj := &unstructured.Unstructured{}
+		client, err := c.dynamicClient.ResourceClient(rawObj.Raw, obj)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+		_, err = c.dynamicClient.Get(ctx, client, obj)
+		if errors.IsNotFound(err) {
+			if _, err = c.dynamicClient.Apply(ctx, client, obj); err != nil {
+				klog.Error(err)
+				return err
+			}
+		} else if err != nil {
+			klog.Error(err)
+			return err
+		}
+	}
+	return nil
 }

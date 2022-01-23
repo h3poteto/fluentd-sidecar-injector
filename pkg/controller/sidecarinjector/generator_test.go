@@ -166,7 +166,7 @@ func TestNewCertificates(t *testing.T) {
 func TestNewMutatingWebhookConfiguration(t *testing.T) {
 	serviceName := "my-cluster"
 	namespace := "kube-system"
-	_, cert, err := NewCertificates(serviceName, namespace)
+	_, _, err := NewCertificates(serviceName, namespace)
 	if err != nil {
 		t.Error(err)
 	}
@@ -182,12 +182,9 @@ func TestNewMutatingWebhookConfiguration(t *testing.T) {
 		},
 	}
 
-	conf := newMutatingWebhookConfiguration(injector, serviceName, namespace, serviceName, cert)
+	conf := newMutatingWebhookConfiguration(injector, serviceName, namespace, serviceName)
 	if conf.Webhooks[0].Name != serviceName+"."+namespace+".svc" {
 		t.Errorf("Webhook name is not matched: %s", conf.Webhooks[0].Name)
-	}
-	if string(conf.Webhooks[0].ClientConfig.CABundle) != string(cert) {
-		t.Errorf("Webhook CABundle is not matched: %v", conf.Webhooks[0].ClientConfig.CABundle)
 	}
 	if *conf.Webhooks[0].ClientConfig.Service.Path != "/mutate" {
 		t.Errorf("Webhook Service path is not matched: %s", *conf.Webhooks[0].ClientConfig.Service.Path)
