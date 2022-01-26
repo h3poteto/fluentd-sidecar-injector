@@ -13,7 +13,11 @@
 - You can change fluentd or fluent-bit docker image to be injected
 
 ## Install
-You can install this controller and webhook server using helm.
+### With cert-manager (Recommended)
+This controller creates a webhook server, and you can manage the certificate of the webhook with [cert-manager](https://cert-manager.io/docs/). Make sure you have already installed cert-manager before you install.
+
+
+You can install this controller and webhook server using helm. By default, the helm chart installs this controller with `--use-cert-manager`.
 
 ```
 $ helm repo add h3poteto-stable https://h3poteto.github.io/charts/stable
@@ -21,6 +25,16 @@ $ helm install my-injector --namespace kube-system h3poteto-stable/fluentd-sidec
 ```
 
 Please refer [helm repository](https://github.com/h3poteto/charts/tree/master/stable/fluentd-sidecar-injector) for parameters.
+
+### Without cert-manager
+If you don't use cert-manager, please choose this way. But the certificate will not be renewed when it expires. So please re-install this controller when it expires.
+
+```
+$ helm repo add h3poteto-stable https://h3poteto.github.io/charts/stable
+$ helm install my-injector --namespace kube-system h3poteto-stable/fluentd-sidecar-injector --set useCertManager=false
+```
+
+### Confirm
 
 
 After install it, custom resources and controller will be installed.
