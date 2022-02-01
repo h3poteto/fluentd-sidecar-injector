@@ -138,18 +138,44 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 		},
 	})
 
-	sidecar := corev1.Container{
-		Name:  ContainerName,
-		Image: dockerImage,
-		Resources: corev1.ResourceRequirements{
-			Requests: map[corev1.ResourceName]resource.Quantity{
-				corev1.ResourceMemory: *resource.NewQuantity(200*1024*1024, resource.BinarySI),
-				corev1.ResourceCPU:    *resource.NewMilliQuantity(100, resource.DecimalSI),
-			},
-			Limits: map[corev1.ResourceName]resource.Quantity{
-				corev1.ResourceMemory: *resource.NewQuantity(1000*1024*1024, resource.BinarySI),
-			},
+	resourceRequirements := corev1.ResourceRequirements{
+		Requests: map[corev1.ResourceName]resource.Quantity{
+			corev1.ResourceMemory: *resource.NewQuantity(200*1024*1024, resource.BinarySI),
+			corev1.ResourceCPU:    *resource.NewMilliQuantity(100, resource.DecimalSI),
 		},
+		Limits: map[corev1.ResourceName]resource.Quantity{
+			corev1.ResourceMemory: *resource.NewQuantity(1000*1024*1024, resource.BinarySI),
+		},
+	}
+
+	if value, ok := pod.Annotations[annotationPrefix+"/memory-request"]; ok {
+		resourceRequirements.Requests[corev1.ResourceMemory] = resource.Quantity{
+			Format: resource.Format(value),
+		}
+	}
+
+	if value, ok := pod.Annotations[annotationPrefix+"/memory-limit"]; ok {
+		resourceRequirements.Limits[corev1.ResourceMemory] = resource.Quantity{
+			Format: resource.Format(value),
+		}
+	}
+
+	if value, ok := pod.Annotations[annotationPrefix+"/cpu-request"]; ok {
+		resourceRequirements.Requests[corev1.ResourceCPU] = resource.Quantity{
+			Format: resource.Format(value),
+		}
+	}
+
+	if value, ok := pod.Annotations[annotationPrefix+"/cpu-limit"]; ok {
+		resourceRequirements.Limits[corev1.ResourceCPU] = resource.Quantity{
+			Format: resource.Format(value),
+		}
+	}
+
+	sidecar := corev1.Container{
+		Name:      ContainerName,
+		Image:     dockerImage,
+		Resources: resourceRequirements,
 	}
 
 	if value, ok := pod.Annotations[annotationPrefix+"/expose-port"]; ok {
@@ -263,7 +289,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 			if name := volumes[i].Name; name == value {
 				sidecar.VolumeMounts = append(sidecar.VolumeMounts, corev1.VolumeMount{
 					Name:      name,
-					MountPath: "/fluentd/etc" })
+					MountPath: "/fluentd/etc"})
 				break
 			}
 		}
@@ -524,7 +550,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 			if name := volumes[i].Name; name == value {
 				sidecar.VolumeMounts = append(sidecar.VolumeMounts, corev1.VolumeMount{
 					Name:      name,
-					MountPath: "/fluent-bit/etc" })
+					MountPath: "/fluent-bit/etc"})
 				break
 			}
 		}
