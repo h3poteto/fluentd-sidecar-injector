@@ -12,7 +12,7 @@ import (
 	"github.com/h3poteto/fluentd-sidecar-injector/pkg/controller/sidecarinjector"
 	pkgwebhook "github.com/h3poteto/fluentd-sidecar-injector/pkg/webhook"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -26,42 +26,37 @@ import (
 	"k8s.io/klog/v2"
 )
 
+var (
+	cfg       *rest.Config
+	ownClient *clientset.Clientset
+	client    *kubernetes.Clientset
+	managerNS string
+)
+
+var _ = BeforeSuite(func() {
+	managerNS = "kube-public"
+	configfile := os.Getenv("KUBECONFIG")
+	if configfile == "" {
+		configfile = "$HOME/.kube/config"
+	}
+	var err error
+	cfg, err = clientcmd.BuildConfigFromFlags("", os.ExpandEnv(configfile))
+	Expect(err).ShouldNot(HaveOccurred())
+
+	client, err = kubernetes.NewForConfig(cfg)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	ownClient, err = clientset.NewForConfig(cfg)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
+	err = waitUntilReady(ctx, client)
+	Expect(err).ShouldNot(HaveOccurred())
+})
+
 var _ = Describe("E2E", func() {
-	var (
-		cfg       *rest.Config
-		ownClient *clientset.Clientset
-		client    *kubernetes.Clientset
-	)
-	managerNS := "kube-public"
-	BeforeSuite(func() {
-		// Deploy operator controller
-		configfile := os.Getenv("KUBECONFIG")
-		if configfile == "" {
-			configfile = "$HOME/.kube/config"
-		}
-		var err error
-		cfg, err = clientcmd.BuildConfigFromFlags("", os.ExpandEnv(configfile))
-		if err != nil {
-			panic(err)
-		}
-
-		client, err = kubernetes.NewForConfig(cfg)
-		if err != nil {
-			panic(err)
-		}
-		ownClient, err = clientset.NewForConfig(cfg)
-		if err != nil {
-			panic(err)
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-		defer cancel()
-
-		if err := waitUntilReady(ctx, client); err != nil {
-			panic(err)
-		}
-	})
-
 	Describe("Webhook is created and sidecar containers are injected", func() {
 		var (
 			useCertManager bool
