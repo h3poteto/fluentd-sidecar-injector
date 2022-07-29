@@ -35,7 +35,7 @@ $ docker push my-docker-registry/fluentd-sidecar-injector:experimental
 ## Install ginkgo
 
 ```
-$ go get github.com/onsi/ginkgo/ginkgo
+$ go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo
 ```
 
 ## Run E2E tests
