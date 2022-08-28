@@ -1,6 +1,6 @@
 module github.com/h3poteto/fluentd-sidecar-injector
 
-go 1.18
+go 1.19
 
 require (
 	github.com/kelseyhightower/envconfig v1.4.0
