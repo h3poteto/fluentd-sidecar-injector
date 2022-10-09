@@ -14,7 +14,13 @@ CONTROLLER_TOOLS_TAG=v0.7.0
 BRANCH := $(shell git branch --show-current)
 
 build: codegen manifests
-	go build -a -tags netgo -installsuffix netgo --ldflags '-extldflags "-static"'
+	go build -a -tags netgo -installsuffix netgo -ldflags \
+" \
+  -extldflags '-static' \
+  -X github.com/h3poteto/fluentd-sidecar-injector/cmd.version=$(shell git describe --tag --abbrev=0) \
+  -X github.com/h3poteto/fluentd-sidecar-injector/cmd.revision=$(shell git rev-list -1 HEAD) \
+  -X github.com/h3poteto/fluentd-sidecar-injector/cmd.build=$(shell git describe --tags) \
+"
 
 run: codegen manifests
 	go run ./main.go controller sidecar-injector --kubeconfig=${KUBECONFIG}
