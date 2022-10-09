@@ -110,7 +110,7 @@ func (c *FakeSidecarInjectors) UpdateStatus(ctx context.Context, sidecarInjector
 // Delete takes name of the sidecarInjector and deletes it. Returns an error if one occurs.
 func (c *FakeSidecarInjectors) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(sidecarinjectorsResource, name), &v1alpha1.SidecarInjector{})
+		Invokes(testing.NewRootDeleteActionWithOptions(sidecarinjectorsResource, name, opts), &v1alpha1.SidecarInjector{})
 	return err
 }
 

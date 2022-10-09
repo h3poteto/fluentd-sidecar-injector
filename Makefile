@@ -9,8 +9,8 @@ endif
 
 CRD_OPTIONS ?= "crd"
 CODE_GENERATOR=${GOPATH}/src/k8s.io/code-generator
-CODE_GENERATOR_TAG=v0.22.6
-CONTROLLER_TOOLS_TAG=v0.7.0
+CODE_GENERATOR_TAG=v0.23.12
+CONTROLLER_TOOLS_TAG=v0.9.2
 BRANCH := $(shell git branch --show-current)
 
 build: codegen manifests
@@ -37,10 +37,12 @@ clean:
 	rm -f $(GOBIN)/controller-gen
 	rm -rf $(CODE_GENERATOR)
 
+# boilerplate is necessary to avoid: https://github.com/kubernetes/code-generator/issues/131
 codegen: code-generator
 	${CODE_GENERATOR}/generate-groups.sh "deepcopy,client,informer,lister" \
 	github.com/h3poteto/fluentd-sidecar-injector/pkg/client github.com/h3poteto/fluentd-sidecar-injector/pkg/apis \
-	sidecarinjectorcontroller:v1alpha1
+	sidecarinjectorcontroller:v1alpha1 \
+    -h boilerplate.go.txt
 
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=sidecar-injector-manager-role paths=./...  output:crd:artifacts:config=./config/crd/
