@@ -4,8 +4,8 @@ go 1.18
 
 require (
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/onsi/ginkgo/v2 v2.1.4
-	github.com/onsi/gomega v1.20.0
+	github.com/onsi/ginkgo/v2 v2.2.0
+	github.com/onsi/gomega v1.20.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/slok/kubewebhook v0.11.0
 	github.com/spf13/cobra v1.3.0
@@ -53,9 +53,9 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
-	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect
+	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
-	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
