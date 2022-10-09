@@ -10,8 +10,8 @@ on:
 
 env:
   IMAGE_NAME: fluentd-sidecar-injector
-  KIND_VERSION: v0.11.1
-  KUBECTL_VERSION: v1.21.5
+  KIND_VERSION: v0.12.0
+  KUBECTL_VERSION: v1.22.15
 
 jobs:
   e2e-test:
@@ -19,7 +19,7 @@ jobs:
 
     strategy:
       matrix:
-        k8s-version: [1.21.2, 1.22.4, 1.23.1]
+        k8s-version: [1.22.15, 1.23.12, 1.24.6]
 
     steps:
       - uses: actions/checkout@master
@@ -76,5 +76,4 @@ jobs:
           export FLUENTD_SIDECAR_INJECTOR_IMAGE=$IMAGE_ID:$SHA
           go mod download
           ginkgo -r ./e2e
-
 
