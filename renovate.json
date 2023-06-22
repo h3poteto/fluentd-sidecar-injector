@@ -14,7 +14,7 @@
         "k8s.io/client-go",
         "k8s.io/utils"
       ],
-      "matchUpdateTypes": ["major", "minor"],
+      "matchUpdateTypes": ["patch"],
       "enabled": false
     },
     {
@@ -22,7 +22,7 @@
       "matchPackageNames": [
         "github.com/slok/kubewebhook"
       ],
-      "matchUpdateTypes": ["major", "minor"],
+      "matchUpdateTypes": ["patch"],
       "enabled": false
     }
   ]
