@@ -8,7 +8,7 @@ require (
 	github.com/onsi/gomega v1.23.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/slok/kubewebhook v0.11.0
-	github.com/spf13/cobra v1.5.0
+	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.13.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.26.6
@@ -38,7 +38,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
