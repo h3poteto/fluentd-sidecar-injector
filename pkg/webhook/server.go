@@ -8,9 +8,12 @@ import (
 	"strconv"
 
 	"github.com/kelseyhightower/envconfig"
-	webhookhttp "github.com/slok/kubewebhook/pkg/http"
-	"github.com/slok/kubewebhook/pkg/log"
-	"github.com/slok/kubewebhook/pkg/webhook/mutating"
+	"github.com/sirupsen/logrus"
+	kwhhttp "github.com/slok/kubewebhook/v2/pkg/http"
+	kwhlog "github.com/slok/kubewebhook/v2/pkg/log"
+	kwhlogrus "github.com/slok/kubewebhook/v2/pkg/log/logrus"
+	kwhmodel "github.com/slok/kubewebhook/v2/pkg/model"
+	kwhmutating "github.com/slok/kubewebhook/v2/pkg/webhook/mutating"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,24 +53,28 @@ type FluentBitEnv struct {
 	CustomEnv         string `envconfig:"CUSTOM_ENV"`
 }
 
-var logger = &log.Std{}
+var logger kwhlog.Logger
 
 // StartServer run webhook server.
 func StartServer(tlsCertFile, tlsKeyFile string) error {
-	logger = &log.Std{Debug: true}
+	logrusLogEntry := logrus.NewEntry(logrus.New())
+	logrusLogEntry.Logger.SetLevel(logrus.DebugLevel)
+	logger = kwhlogrus.NewLogrus(logrusLogEntry)
 
-	mutator := mutating.MutatorFunc(sidecarInjectMutator)
+	mutator := kwhmutating.MutatorFunc(sidecarInjectMutator)
 
-	config := mutating.WebhookConfig{
-		Name: "fluentdSidecarInjector",
-		Obj:  &corev1.Pod{},
+	config := kwhmutating.WebhookConfig{
+		ID:      "fluentdSidecarInjector",
+		Obj:     &corev1.Pod{},
+		Mutator: mutator,
+		Logger:  logger,
 	}
-	webhook, err := mutating.NewWebhook(config, mutator, nil, nil, logger)
+	webhook, err := kwhmutating.NewWebhook(config)
 	if err != nil {
 		return fmt.Errorf("Failed to create webhook: %s", err)
 	}
 
-	handler, err := webhookhttp.HandlerFor(webhook)
+	handler, err := kwhhttp.HandlerFor(kwhhttp.HandlerConfig{Webhook: webhook, Logger: logger})
 	if err != nil {
 		return fmt.Errorf("Failed to create webhook handler: %s", err)
 	}
@@ -85,24 +92,24 @@ func StartServer(tlsCertFile, tlsKeyFile string) error {
 // sidecarInjectMutator mutates requested pod definition to inject fluentd as sidecar.
 // This function retunrs bool, and error to detect stop applying.
 // If return false, API server does not stop applying. But if return true, API server stop applying, and say errors to kubectl.
-func sidecarInjectMutator(_ context.Context, obj metav1.Object) (bool, error) {
+func sidecarInjectMutator(_ context.Context, _ *kwhmodel.AdmissionReview, obj metav1.Object) (*kwhmutating.MutatorResult, error) {
 	logger.Debugf("Receive request")
 
 	pod, ok := obj.(*corev1.Pod)
 	if !ok {
-		return false, nil
+		return &kwhmutating.MutatorResult{}, nil
 	}
 	logger.Debugf("Receive pod: %#v", pod)
 
 	if pod.Annotations[annotationPrefix+"/injection"] != "enabled" {
 		logger.Debugf("Skip injector because annotation is not specified")
-		return false, nil
+		return &kwhmutating.MutatorResult{}, nil
 	}
 
 	var generalEnv GeneralEnv
 	err := envconfig.Process("", &generalEnv)
 	if err != nil {
-		return false, err
+		return &kwhmutating.MutatorResult{}, err
 	}
 
 	collector := generalEnv.Collector
@@ -115,15 +122,15 @@ func sidecarInjectMutator(_ context.Context, obj metav1.Object) (bool, error) {
 	case "fluent-bit":
 		return injectFluentBit(pod)
 	default:
-		return false, fmt.Errorf("collector must be fluentd or fluent-bit, %s is not matched", collector)
+		return &kwhmutating.MutatorResult{}, fmt.Errorf("collector must be fluentd or fluent-bit, %s is not matched", collector)
 	}
 }
 
-func injectFluentD(pod *corev1.Pod) (bool, error) {
+func injectFluentD(pod *corev1.Pod) (*kwhmutating.MutatorResult, error) {
 	var fluentdEnv FluentDEnv
 	err := envconfig.Process("fluentd", &fluentdEnv)
 	if err != nil {
-		return false, err
+		return &kwhmutating.MutatorResult{}, err
 	}
 
 	dockerImage := fluentdEnv.DockerImage
@@ -218,7 +225,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 	}
 
 	if aggregatorHost == "" {
-		return false, errors.New("aggregator host is required")
+		return &kwhmutating.MutatorResult{}, errors.New("aggregator host is required")
 	}
 	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
 		Name:  "AGGREGATOR_HOST",
@@ -266,7 +273,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 		applicationLogDir = value
 	}
 	if applicationLogDir == "" {
-		return false, errors.New("application log dir is required")
+		return &kwhmutating.MutatorResult{}, errors.New("application log dir is required")
 	}
 	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
 		Name:  "APPLICATION_LOG_DIR",
@@ -295,7 +302,7 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 		}
 
 		if mountsCnt == len(sidecar.VolumeMounts) {
-			return false, errors.New("config volume does not exist")
+			return &kwhmutating.MutatorResult{}, errors.New("config volume does not exist")
 		}
 	}
 
@@ -424,14 +431,16 @@ func injectFluentD(pod *corev1.Pod) (bool, error) {
 
 	pod.Spec.Containers = containers
 
-	return false, nil
+	return &kwhmutating.MutatorResult{
+		MutatedObject: pod,
+	}, nil
 }
 
-func injectFluentBit(pod *corev1.Pod) (bool, error) {
+func injectFluentBit(pod *corev1.Pod) (*kwhmutating.MutatorResult, error) {
 	var fluentBitEnv FluentBitEnv
 	err := envconfig.Process("fluentbit", &fluentBitEnv)
 	if err != nil {
-		return false, err
+		return &kwhmutating.MutatorResult{}, err
 	}
 
 	dockerImage := fluentBitEnv.DockerImage
@@ -491,7 +500,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 	}
 
 	if aggregatorHost == "" {
-		return false, errors.New("aggregator host is required")
+		return &kwhmutating.MutatorResult{}, errors.New("aggregator host is required")
 	}
 	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
 		Name:  "AGGREGATOR_HOST",
@@ -527,7 +536,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 		applicationLogDir = value
 	}
 	if applicationLogDir == "" {
-		return false, errors.New("application log dir is required")
+		return &kwhmutating.MutatorResult{}, errors.New("application log dir is required")
 	}
 	sidecar.Env = append(sidecar.Env, corev1.EnvVar{
 		Name:  "APPLICATION_LOG_DIR",
@@ -556,7 +565,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 		}
 
 		if mountsCnt == len(sidecar.VolumeMounts) {
-			return false, errors.New("config volume does not exist")
+			return &kwhmutating.MutatorResult{}, errors.New("config volume does not exist")
 		}
 	}
 
@@ -659,5 +668,7 @@ func injectFluentBit(pod *corev1.Pod) (bool, error) {
 	}
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 
-	return false, nil
+	return &kwhmutating.MutatorResult{
+		MutatedObject: pod,
+	}, nil
 }
