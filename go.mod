@@ -8,7 +8,7 @@ require (
 	github.com/onsi/gomega v1.27.8
 	github.com/sirupsen/logrus v1.9.3
 	github.com/slok/kubewebhook/v2 v2.5.0
-	github.com/spf13/cobra v1.7.0
+	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.16.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.27.3
