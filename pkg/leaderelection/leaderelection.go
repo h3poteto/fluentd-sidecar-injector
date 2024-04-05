@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/h3poteto/fluentd-sidecar-injector/pkg/signals"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -38,18 +39,15 @@ func (le *LeaderElection) Run(ctx context.Context, cfg *rest.Config, run func(ct
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	lock, err := resourcelock.New(
-		resourcelock.ConfigMapsLeasesResourceLock,
-		le.namespace,
-		le.name,
-		client.CoreV1(),
-		client.CoordinationV1(),
-		resourcelock.ResourceLockConfig{
+	lock := &resourcelock.LeaseLock{
+		LeaseMeta: metav1.ObjectMeta{
+			Name:      le.name,
+			Namespace: le.namespace,
+		},
+		Client: client.CoordinationV1(),
+		LockConfig: resourcelock.ResourceLockConfig{
 			Identity: id,
 		},
-	)
-	if err != nil {
-		return err
 	}
 
 	leaderelection.RunOrDie(ctx, leaderelection.LeaderElectionConfig{

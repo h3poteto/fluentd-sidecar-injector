@@ -24,7 +24,6 @@ import (
 	v1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/apis/sidecarinjectorcontroller/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -35,9 +34,9 @@ type FakeSidecarInjectors struct {
 	Fake *FakeOperatorV1alpha1
 }
 
-var sidecarinjectorsResource = schema.GroupVersionResource{Group: "operator.h3poteto.dev", Version: "v1alpha1", Resource: "sidecarinjectors"}
+var sidecarinjectorsResource = v1alpha1.SchemeGroupVersion.WithResource("sidecarinjectors")
 
-var sidecarinjectorsKind = schema.GroupVersionKind{Group: "operator.h3poteto.dev", Version: "v1alpha1", Kind: "SidecarInjector"}
+var sidecarinjectorsKind = v1alpha1.SchemeGroupVersion.WithKind("SidecarInjector")
 
 // Get takes name of the sidecarInjector, and returns the corresponding sidecarInjector object, and an error if there is any.
 func (c *FakeSidecarInjectors) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.SidecarInjector, err error) {
