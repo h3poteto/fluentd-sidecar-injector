@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/onsi/ginkgo/v2 v2.17.1
-	github.com/onsi/gomega v1.30.0
+	github.com/onsi/gomega v1.32.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/slok/kubewebhook/v2 v2.5.0
 	github.com/spf13/cobra v1.8.0
