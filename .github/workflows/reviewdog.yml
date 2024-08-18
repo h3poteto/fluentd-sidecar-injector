@@ -4,21 +4,9 @@ on:
   pull_request:
 
 jobs:
-  golangci-lint:
+  reviewdog:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@master
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: "go.mod"
-      - uses: reviewdog/action-setup@v1
-      - name: Install golangci-lint
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.53.3
-          golangci-lint --version
-      - name: Run golangci-lint
-        env:
-          REVIEWDOG_GITHUB_API_TOKEN: ${{ github.token }}
-        run: |
-          golangci-lint run --timeout 3m | reviewdog -f=golangci-lint -reporter=github-pr-review -filter-mode=diff_context -fail-on-error=true
+      - uses: actions/checkout@v4
+      - name: golangci-lint
+        uses: reviewdog/action-golangci-lint@v2
