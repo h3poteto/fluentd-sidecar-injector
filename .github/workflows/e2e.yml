@@ -10,8 +10,8 @@ on:
 
 env:
   IMAGE_NAME: fluentd-sidecar-injector
-  KIND_VERSION: v0.22.0
-  KUBECTL_VERSION: v1.29.5
+  KIND_VERSION: v0.25.0
+  KUBECTL_VERSION: v1.30.7
 
 jobs:
   e2e-test:
@@ -19,7 +19,7 @@ jobs:
 
     strategy:
       matrix:
-        k8s-version: [1.28.9, 1.29.4, 1.30.0]
+        k8s-version: [1.29.10, 1.30.6, 1.31.2]
 
     steps:
       - uses: actions/checkout@master
@@ -29,7 +29,7 @@ jobs:
       - name: Install kind
         env:
           KIND_VERSION: ${{ env.KIND_VERSION }}
-          BIN_DIR: ${{ github.workspace }}/tools/
+          BIN_DIR: ${{ github.workspace }}/tools
         run: |
           mkdir -p $BIN_DIR
           curl -sSLo "$BIN_DIR/kind" "https://github.com/kubernetes-sigs/kind/releases/download/$KIND_VERSION/kind-linux-amd64"
@@ -41,7 +41,7 @@ jobs:
           BIN_DIR: ${{ github.workspace }}/tools/
         run: |
           mkdir -p $BIN_DIR
-          curl -sSLo "$BIN_DIR/kubectl" "https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+          curl -sSLo "$BIN_DIR/kubectl" "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
           chmod +x "$BIN_DIR/kubectl"
           echo "$BIN_DIR" >> "$GITHUB_PATH"
       - name: Setup kind ${{ matrix.k8s-version }}
