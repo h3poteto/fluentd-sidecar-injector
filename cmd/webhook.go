@@ -33,7 +33,7 @@ func (o *webhookOption) run(cmd *cobra.Command, args []string) {
 		logrus.Fatal("tls-key-file is required parameter")
 	}
 
-	if err := webhook.StartServer(o.tlsCertFile, o.tlsKeyFile); err != nil {
+	if err := webhook.Server(int32(8080), o.tlsCertFile, o.tlsKeyFile); err != nil {
 		logrus.Fatal(err)
 	}
 }

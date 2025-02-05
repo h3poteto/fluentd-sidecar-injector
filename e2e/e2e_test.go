@@ -10,7 +10,7 @@ import (
 	"github.com/h3poteto/fluentd-sidecar-injector/e2e/pkg/util"
 	clientset "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/clientset/versioned"
 	"github.com/h3poteto/fluentd-sidecar-injector/pkg/controller/sidecarinjector"
-	pkgwebhook "github.com/h3poteto/fluentd-sidecar-injector/pkg/webhook"
+	pkgwebhook "github.com/h3poteto/fluentd-sidecar-injector/pkg/webhook/sidecarinjector"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

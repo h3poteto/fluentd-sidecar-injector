@@ -1,4 +1,4 @@
-package webhook
+package sidecarinjector
 
 import (
 	"os"
@@ -33,7 +33,7 @@ func TestInjectFluentD(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if result.MutatedObject == nil {
+	if result.Mutated == nil {
 		t.Error("Could not inject sidecar")
 	}
 	if v := findVolume(pod.Spec.Volumes, VolumeName); v == nil || v.VolumeSource.EmptyDir == nil {
@@ -133,7 +133,7 @@ func TestInjectFluentDDWithAnnotations(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if result.MutatedObject == nil {
+	if result.Mutated == nil {
 		t.Error("Could not inject sidecar")
 	}
 
@@ -227,7 +227,7 @@ func TestInjectFluentDWithEnv(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if result.MutatedObject == nil {
+	if result.Mutated == nil {
 		t.Error("Could not inject sidecar")
 	}
 
@@ -308,7 +308,7 @@ func TestInjectFluentBit(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if result.MutatedObject == nil {
+	if result.Mutated == nil {
 		t.Error("Could not inject sidecar")
 	}
 
@@ -395,7 +395,7 @@ func TestInjectFluentBitWithAnnotations(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if result.MutatedObject == nil {
+	if result.Mutated == nil {
 		t.Error("Could not inject sidecar")
 	}
 
@@ -474,7 +474,7 @@ func TestInjectFluentBitWithEnv(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if result.MutatedObject == nil {
+	if result.Mutated == nil {
 		t.Error("Could not inject sidecar")
 	}
 
