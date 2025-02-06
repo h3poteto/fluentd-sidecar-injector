@@ -181,10 +181,10 @@ spec:
       containers:
         - name: nginx
           image: nginx:latest
-    volumes:
-      - name: fluent-conf
-        configMap:
-          name: fluent-conf
+      volumes:
+        - name: fluent-conf
+          configMap:
+            name: fluent-conf
 ---
 apiVersion: v1
 kind: ConfigMap
