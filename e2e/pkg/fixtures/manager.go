@@ -5,7 +5,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilpointer "k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -72,7 +72,7 @@ func deployment(ns, image string, useCertManager bool) *appsv1.Deployment {
 			Namespace: ns,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: utilpointer.Int32Ptr(1),
+			Replicas: ptr.To[int32](1),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: ManagerPodLabels,
 			},
