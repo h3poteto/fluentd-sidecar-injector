@@ -16,14 +16,6 @@
       ],
       "matchUpdateTypes": ["patch"],
       "enabled": false
-    },
-    {
-      "groupName": "github.com/slok/kubewebhook (major or minor)",
-      "matchPackageNames": [
-        "github.com/slok/kubewebhook"
-      ],
-      "matchUpdateTypes": ["patch"],
-      "enabled": false
     }
   ]
 }
