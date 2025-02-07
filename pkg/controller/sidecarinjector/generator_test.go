@@ -198,7 +198,7 @@ func TestNewMutatingWebhookConfiguration(t *testing.T) {
 	if *conf.Webhooks[0].FailurePolicy != admissionregistrationv1.Ignore {
 		t.Errorf("Webhook FailurePolicy is not matched: %v", *conf.Webhooks[0].FailurePolicy)
 	}
-	if conf.Webhooks[0].AdmissionReviewVersions[0] != "v1beta1" {
+	if conf.Webhooks[0].AdmissionReviewVersions[0] != "v1" {
 		t.Errorf("Webhook AdmissionReviewVersions is not matched: %v", conf.Webhooks[0].AdmissionReviewVersions)
 	}
 }

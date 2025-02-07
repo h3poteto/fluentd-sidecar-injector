@@ -408,7 +408,7 @@ func newMutatingWebhookConfiguration(sidecarInjector *sidecarinjectorv1alpha1.Si
 				},
 				SideEffects:             &sideeffect,
 				TimeoutSeconds:          ptr.To[int32](30),
-				AdmissionReviewVersions: []string{"v1beta1"},
+				AdmissionReviewVersions: []string{"v1"},
 			},
 		},
 	}
