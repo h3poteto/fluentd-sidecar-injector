@@ -18,7 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	utilpointer "k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -141,7 +141,7 @@ func newDeployment(sidecarInjector *sidecarinjectorv1alpha1.SidecarInjector, nam
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: utilpointer.Int32Ptr(2),
+			Replicas: ptr.To[int32](2),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					WebhookServerLabelKey: WebhookServerLabelValue,
@@ -379,7 +379,7 @@ func newMutatingWebhookConfiguration(sidecarInjector *sidecarinjectorv1alpha1.Si
 					Service: &admissionregistrationv1.ServiceReference{
 						Namespace: serviceNamespace,
 						Name:      serviceName,
-						Path:      utilpointer.StringPtr("/mutate"),
+						Path:      ptr.To[string]("/mutate"),
 					},
 				},
 				Rules: []admissionregistrationv1.RuleWithOperations{
@@ -407,7 +407,7 @@ func newMutatingWebhookConfiguration(sidecarInjector *sidecarinjectorv1alpha1.Si
 					},
 				},
 				SideEffects:             &sideeffect,
-				TimeoutSeconds:          utilpointer.Int32Ptr(30),
+				TimeoutSeconds:          ptr.To[int32](30),
 				AdmissionReviewVersions: []string{"v1beta1"},
 			},
 		},
