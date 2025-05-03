@@ -19,8 +19,8 @@ limitations under the License.
 package versioned
 
 import (
-	"fmt"
-	"net/http"
+	fmt "fmt"
+	http "net/http"
 
 	operatorv1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/clientset/versioned/typed/sidecarinjectorcontroller/v1alpha1"
 	discovery "k8s.io/client-go/discovery"

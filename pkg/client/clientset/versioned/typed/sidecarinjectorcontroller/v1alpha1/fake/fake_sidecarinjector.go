@@ -19,114 +19,34 @@ limitations under the License.
 package fake
 
 import (
-	"context"
-
 	v1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/apis/sidecarinjectorcontroller/v1alpha1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	labels "k8s.io/apimachinery/pkg/labels"
-	types "k8s.io/apimachinery/pkg/types"
-	watch "k8s.io/apimachinery/pkg/watch"
-	testing "k8s.io/client-go/testing"
+	sidecarinjectorcontrollerv1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/clientset/versioned/typed/sidecarinjectorcontroller/v1alpha1"
+	gentype "k8s.io/client-go/gentype"
 )
 
-// FakeSidecarInjectors implements SidecarInjectorInterface
-type FakeSidecarInjectors struct {
+// fakeSidecarInjectors implements SidecarInjectorInterface
+type fakeSidecarInjectors struct {
+	*gentype.FakeClientWithList[*v1alpha1.SidecarInjector, *v1alpha1.SidecarInjectorList]
 	Fake *FakeOperatorV1alpha1
 }
 
-var sidecarinjectorsResource = v1alpha1.SchemeGroupVersion.WithResource("sidecarinjectors")
-
-var sidecarinjectorsKind = v1alpha1.SchemeGroupVersion.WithKind("SidecarInjector")
-
-// Get takes name of the sidecarInjector, and returns the corresponding sidecarInjector object, and an error if there is any.
-func (c *FakeSidecarInjectors) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.SidecarInjector, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(sidecarinjectorsResource, name), &v1alpha1.SidecarInjector{})
-	if obj == nil {
-		return nil, err
+func newFakeSidecarInjectors(fake *FakeOperatorV1alpha1) sidecarinjectorcontrollerv1alpha1.SidecarInjectorInterface {
+	return &fakeSidecarInjectors{
+		gentype.NewFakeClientWithList[*v1alpha1.SidecarInjector, *v1alpha1.SidecarInjectorList](
+			fake.Fake,
+			"",
+			v1alpha1.SchemeGroupVersion.WithResource("sidecarinjectors"),
+			v1alpha1.SchemeGroupVersion.WithKind("SidecarInjector"),
+			func() *v1alpha1.SidecarInjector { return &v1alpha1.SidecarInjector{} },
+			func() *v1alpha1.SidecarInjectorList { return &v1alpha1.SidecarInjectorList{} },
+			func(dst, src *v1alpha1.SidecarInjectorList) { dst.ListMeta = src.ListMeta },
+			func(list *v1alpha1.SidecarInjectorList) []*v1alpha1.SidecarInjector {
+				return gentype.ToPointerSlice(list.Items)
+			},
+			func(list *v1alpha1.SidecarInjectorList, items []*v1alpha1.SidecarInjector) {
+				list.Items = gentype.FromPointerSlice(items)
+			},
+		),
+		fake,
 	}
-	return obj.(*v1alpha1.SidecarInjector), err
-}
-
-// List takes label and field selectors, and returns the list of SidecarInjectors that match those selectors.
-func (c *FakeSidecarInjectors) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.SidecarInjectorList, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(sidecarinjectorsResource, sidecarinjectorsKind, opts), &v1alpha1.SidecarInjectorList{})
-	if obj == nil {
-		return nil, err
-	}
-
-	label, _, _ := testing.ExtractFromListOptions(opts)
-	if label == nil {
-		label = labels.Everything()
-	}
-	list := &v1alpha1.SidecarInjectorList{ListMeta: obj.(*v1alpha1.SidecarInjectorList).ListMeta}
-	for _, item := range obj.(*v1alpha1.SidecarInjectorList).Items {
-		if label.Matches(labels.Set(item.Labels)) {
-			list.Items = append(list.Items, item)
-		}
-	}
-	return list, err
-}
-
-// Watch returns a watch.Interface that watches the requested sidecarInjectors.
-func (c *FakeSidecarInjectors) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
-	return c.Fake.
-		InvokesWatch(testing.NewRootWatchAction(sidecarinjectorsResource, opts))
-}
-
-// Create takes the representation of a sidecarInjector and creates it.  Returns the server's representation of the sidecarInjector, and an error, if there is any.
-func (c *FakeSidecarInjectors) Create(ctx context.Context, sidecarInjector *v1alpha1.SidecarInjector, opts v1.CreateOptions) (result *v1alpha1.SidecarInjector, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(sidecarinjectorsResource, sidecarInjector), &v1alpha1.SidecarInjector{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.SidecarInjector), err
-}
-
-// Update takes the representation of a sidecarInjector and updates it. Returns the server's representation of the sidecarInjector, and an error, if there is any.
-func (c *FakeSidecarInjectors) Update(ctx context.Context, sidecarInjector *v1alpha1.SidecarInjector, opts v1.UpdateOptions) (result *v1alpha1.SidecarInjector, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(sidecarinjectorsResource, sidecarInjector), &v1alpha1.SidecarInjector{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.SidecarInjector), err
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeSidecarInjectors) UpdateStatus(ctx context.Context, sidecarInjector *v1alpha1.SidecarInjector, opts v1.UpdateOptions) (*v1alpha1.SidecarInjector, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(sidecarinjectorsResource, "status", sidecarInjector), &v1alpha1.SidecarInjector{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.SidecarInjector), err
-}
-
-// Delete takes name of the sidecarInjector and deletes it. Returns an error if one occurs.
-func (c *FakeSidecarInjectors) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteActionWithOptions(sidecarinjectorsResource, name, opts), &v1alpha1.SidecarInjector{})
-	return err
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *FakeSidecarInjectors) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(sidecarinjectorsResource, listOpts)
-
-	_, err := c.Fake.Invokes(action, &v1alpha1.SidecarInjectorList{})
-	return err
-}
-
-// Patch applies the patch and returns the patched sidecarInjector.
-func (c *FakeSidecarInjectors) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.SidecarInjector, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(sidecarinjectorsResource, name, pt, data, subresources...), &v1alpha1.SidecarInjector{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.SidecarInjector), err
 }

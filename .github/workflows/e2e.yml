@@ -10,8 +10,8 @@ on:
 
 env:
   IMAGE_NAME: fluentd-sidecar-injector
-  KIND_VERSION: v0.25.0
-  KUBECTL_VERSION: v1.31.5
+  KIND_VERSION: v0.27.0
+  KUBECTL_VERSION: v1.32.4
 
 jobs:
   e2e-test:
@@ -19,7 +19,7 @@ jobs:
 
     strategy:
       matrix:
-        k8s-version: [1.30.8, 1.31.4, 1.32.1]
+        k8s-version: [1.31.6, 1.32.2]
 
     steps:
       - uses: actions/checkout@master

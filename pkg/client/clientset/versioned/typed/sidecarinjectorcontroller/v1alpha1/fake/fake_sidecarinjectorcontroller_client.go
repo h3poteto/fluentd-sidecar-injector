@@ -29,7 +29,7 @@ type FakeOperatorV1alpha1 struct {
 }
 
 func (c *FakeOperatorV1alpha1) SidecarInjectors() v1alpha1.SidecarInjectorInterface {
-	return &FakeSidecarInjectors{c}
+	return newFakeSidecarInjectors(c)
 }
 
 // RESTClient returns a RESTClient that is used to communicate
