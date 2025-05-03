@@ -9,8 +9,8 @@ endif
 
 CRD_OPTIONS ?= "crd"
 CODE_GENERATOR=${GOPATH}/src/k8s.io/code-generator
-CODE_GENERATOR_TAG=v0.30.5
-CONTROLLER_TOOLS_TAG=v0.14.0
+CODE_GENERATOR_TAG=v0.32.4
+CONTROLLER_TOOLS_TAG=v0.17.3
 BRANCH := $(shell git branch --show-current)
 
 build: codegen manifests

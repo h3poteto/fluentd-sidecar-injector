@@ -19,13 +19,13 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 	time "time"
 
-	sidecarinjectorcontrollerv1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/apis/sidecarinjectorcontroller/v1alpha1"
+	apissidecarinjectorcontrollerv1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/apis/sidecarinjectorcontroller/v1alpha1"
 	versioned "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/clientset/versioned"
 	internalinterfaces "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/listers/sidecarinjectorcontroller/v1alpha1"
+	sidecarinjectorcontrollerv1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/client/listers/sidecarinjectorcontroller/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -36,7 +36,7 @@ import (
 // SidecarInjectors.
 type SidecarInjectorInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.SidecarInjectorLister
+	Lister() sidecarinjectorcontrollerv1alpha1.SidecarInjectorLister
 }
 
 type sidecarInjectorInformer struct {
@@ -70,7 +70,7 @@ func NewFilteredSidecarInjectorInformer(client versioned.Interface, resyncPeriod
 				return client.OperatorV1alpha1().SidecarInjectors().Watch(context.TODO(), options)
 			},
 		},
-		&sidecarinjectorcontrollerv1alpha1.SidecarInjector{},
+		&apissidecarinjectorcontrollerv1alpha1.SidecarInjector{},
 		resyncPeriod,
 		indexers,
 	)
@@ -81,9 +81,9 @@ func (f *sidecarInjectorInformer) defaultInformer(client versioned.Interface, re
 }
 
 func (f *sidecarInjectorInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&sidecarinjectorcontrollerv1alpha1.SidecarInjector{}, f.defaultInformer)
+	return f.factory.InformerFor(&apissidecarinjectorcontrollerv1alpha1.SidecarInjector{}, f.defaultInformer)
 }
 
-func (f *sidecarInjectorInformer) Lister() v1alpha1.SidecarInjectorLister {
-	return v1alpha1.NewSidecarInjectorLister(f.Informer().GetIndexer())
+func (f *sidecarInjectorInformer) Lister() sidecarinjectorcontrollerv1alpha1.SidecarInjectorLister {
+	return sidecarinjectorcontrollerv1alpha1.NewSidecarInjectorLister(f.Informer().GetIndexer())
 }

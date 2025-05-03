@@ -158,6 +158,9 @@ func TestNewCertificates(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
+	// https://pkg.go.dev/crypto/tls@go1.23.8#X509KeyPair
+	// Before Go 1.23 Certificate.Leaf was left nil, and the parsed certificate was discarded. This behavior can be re-enabled by setting "x509keypairleaf=0" in the GODEBUG environment variable.
 	if certificate.Leaf != nil {
 		t.Errorf("Failed to parse certificate: %v", certificate)
 	}

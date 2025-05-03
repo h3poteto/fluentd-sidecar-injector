@@ -19,10 +19,10 @@ limitations under the License.
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/apis/sidecarinjectorcontroller/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/tools/cache"
+	sidecarinjectorcontrollerv1alpha1 "github.com/h3poteto/fluentd-sidecar-injector/pkg/apis/sidecarinjectorcontroller/v1alpha1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	listers "k8s.io/client-go/listers"
+	cache "k8s.io/client-go/tools/cache"
 )
 
 // SidecarInjectorLister helps list SidecarInjectors.
@@ -30,39 +30,19 @@ import (
 type SidecarInjectorLister interface {
 	// List lists all SidecarInjectors in the indexer.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1alpha1.SidecarInjector, err error)
+	List(selector labels.Selector) (ret []*sidecarinjectorcontrollerv1alpha1.SidecarInjector, err error)
 	// Get retrieves the SidecarInjector from the index for a given name.
 	// Objects returned here must be treated as read-only.
-	Get(name string) (*v1alpha1.SidecarInjector, error)
+	Get(name string) (*sidecarinjectorcontrollerv1alpha1.SidecarInjector, error)
 	SidecarInjectorListerExpansion
 }
 
 // sidecarInjectorLister implements the SidecarInjectorLister interface.
 type sidecarInjectorLister struct {
-	indexer cache.Indexer
+	listers.ResourceIndexer[*sidecarinjectorcontrollerv1alpha1.SidecarInjector]
 }
 
 // NewSidecarInjectorLister returns a new SidecarInjectorLister.
 func NewSidecarInjectorLister(indexer cache.Indexer) SidecarInjectorLister {
-	return &sidecarInjectorLister{indexer: indexer}
-}
-
-// List lists all SidecarInjectors in the indexer.
-func (s *sidecarInjectorLister) List(selector labels.Selector) (ret []*v1alpha1.SidecarInjector, err error) {
-	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.SidecarInjector))
-	})
-	return ret, err
-}
-
-// Get retrieves the SidecarInjector from the index for a given name.
-func (s *sidecarInjectorLister) Get(name string) (*v1alpha1.SidecarInjector, error) {
-	obj, exists, err := s.indexer.GetByKey(name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(v1alpha1.Resource("sidecarinjector"), name)
-	}
-	return obj.(*v1alpha1.SidecarInjector), nil
+	return &sidecarInjectorLister{listers.New[*sidecarinjectorcontrollerv1alpha1.SidecarInjector](indexer, sidecarinjectorcontrollerv1alpha1.Resource("sidecarinjector"))}
 }

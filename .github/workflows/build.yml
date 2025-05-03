@@ -10,6 +10,9 @@ on:
 jobs:
   unit-test:
     runs-on: ubuntu-latest
+    env:
+      # https://pkg.go.dev/crypto/tls@go1.23.8#X509KeyPair
+      GODEBUG: x509keypairleaf=0
 
     steps:
       - uses: actions/checkout@master
