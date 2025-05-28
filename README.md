@@ -1,6 +1,6 @@
-[![Build](https://github.com/h3poteto/fluentd-sidecar-injector/workflows/Build/badge.svg)](https://github.com/h3poteto/fluentd-sidecar-injector/actions?query=workflow%3ABuild)
-[![E2E](https://github.com/h3poteto/fluentd-sidecar-injector/workflows/E2E/badge.svg)](https://github.com/h3poteto/fluentd-sidecar-injector/actions?query=workflow%3AE2E)
-[![Docker](https://github.com/h3poteto/fluentd-sidecar-injector/workflows/Docker/badge.svg)](https://github.com/h3poteto/fluentd-sidecar-injector/actions?query=workflow%3ADocker)
+[![Build](https://github.com/h3poteto/fluentd-sidecar-injector/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/h3poteto/fluentd-sidecar-injector/actions/workflows/build.yml)
+[![E2E](https://github.com/h3poteto/fluentd-sidecar-injector/actions/workflows/e2e.yml/badge.svg?branch=master)](https://github.com/h3poteto/fluentd-sidecar-injector/actions/workflows/e2e.yml)
+[![Docker](https://github.com/h3poteto/fluentd-sidecar-injector/actions/workflows/docker-publish.yml/badge.svg?branch=master)](https://github.com/h3poteto/fluentd-sidecar-injector/actions/workflows/docker-publish.yml)
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/h3poteto/fluentd-sidecar-injector?sort=semver&style=square)](https://github.com/h3poteto/fluentd-sidecar-injector/releases)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-blue.svg)](https://dependabot.com)
 
