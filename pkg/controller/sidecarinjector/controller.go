@@ -275,7 +275,7 @@ func (c *Controller) syncHandler(key string) error {
 		if !metav1.IsControlledBy(mutating, sidecarInjector) {
 			msg := fmt.Sprintf("Resource %q already exists and is not managed by SidecarInjector", mutating.Name)
 			c.recorder.Event(sidecarInjector, corev1.EventTypeWarning, "ErrResourceExists", msg)
-			return fmt.Errorf(msg)
+			return fmt.Errorf("%s", msg)
 		}
 	} else {
 		// Secrets and Certificate
@@ -290,7 +290,7 @@ func (c *Controller) syncHandler(key string) error {
 		if !metav1.IsControlledBy(secret, sidecarInjector) {
 			msg := fmt.Sprintf("Resource %q already exists and is not managed by SidecarInjector", secret.Name)
 			c.recorder.Event(sidecarInjector, corev1.EventTypeWarning, "ErrResourceExists", msg)
-			return fmt.Errorf(msg)
+			return fmt.Errorf("%s", msg)
 		}
 
 		// WebhookConfiguration
@@ -304,7 +304,7 @@ func (c *Controller) syncHandler(key string) error {
 		if !metav1.IsControlledBy(mutating, sidecarInjector) {
 			msg := fmt.Sprintf("Resource %q already exists and is not managed by SidecarInjector", mutating.Name)
 			c.recorder.Event(sidecarInjector, corev1.EventTypeWarning, "ErrResourceExists", msg)
-			return fmt.Errorf(msg)
+			return fmt.Errorf("%s", msg)
 		}
 	}
 
@@ -330,7 +330,7 @@ func (c *Controller) syncHandler(key string) error {
 	if !metav1.IsControlledBy(deployment, sidecarInjector) {
 		msg := fmt.Sprintf("Resource %q already exists and is not managed by SidecarInjector", deployment.Name)
 		c.recorder.Event(sidecarInjector, corev1.EventTypeWarning, "ErrResourceExists", msg)
-		return fmt.Errorf(msg)
+		return fmt.Errorf("%s", msg)
 	}
 
 	// Service
@@ -345,7 +345,7 @@ func (c *Controller) syncHandler(key string) error {
 	if !metav1.IsControlledBy(service, sidecarInjector) {
 		msg := fmt.Sprintf("Resource %q already exists and is not managed by SidecarInjector", service.Name)
 		c.recorder.Event(sidecarInjector, corev1.EventTypeWarning, "ErrResourceExists", msg)
-		return fmt.Errorf(msg)
+		return fmt.Errorf("%s", msg)
 	}
 
 	err = c.updateSidecarInjectorStatus(ctx, sidecarInjector, deployment, service)
