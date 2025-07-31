@@ -1,6 +1,16 @@
 .PHONY: certs codegen
 
-GOBIN=~/.local/bin
+# Get the currently used golang install path
+# Use ~/.local/bin for local development if it exists in PATH, otherwise use go bin
+ifneq (,$(findstring $(HOME)/.local/bin,$(PATH)))
+GOBIN=$(HOME)/.local/bin
+else
+ifeq (,$(shell go env GOBIN))
+GOBIN=$(shell go env GOPATH)/bin
+else
+GOBIN=$(shell go env GOBIN)
+endif
+endif
 
 CRD_OPTIONS ?= "crd"
 CODE_GENERATOR=${GOPATH}/src/k8s.io/code-generator
