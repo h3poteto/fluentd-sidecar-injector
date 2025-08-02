@@ -1,16 +1,21 @@
 .PHONY: certs codegen
 
-# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
+# Get the currently used golang install path
+# Use ~/.local/bin for local development if it exists in PATH, otherwise use go bin
+ifneq (,$(findstring $(HOME)/.local/bin,$(PATH)))
+GOBIN=$(HOME)/.local/bin
+else
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
 else
 GOBIN=$(shell go env GOBIN)
 endif
+endif
 
 CRD_OPTIONS ?= "crd"
 CODE_GENERATOR=${GOPATH}/src/k8s.io/code-generator
-CODE_GENERATOR_TAG=v0.32.4
-CONTROLLER_TOOLS_TAG=v0.17.3
+CODE_GENERATOR_TAG=v0.33.3
+CONTROLLER_TOOLS_TAG=v0.18.0
 BRANCH := $(shell git branch --show-current)
 
 build: codegen manifests
@@ -51,14 +56,10 @@ endif
 
 controller-gen:
 ifeq (, $(shell which controller-gen))
-	@{ \
-	set -e ;\
-	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$CONTROLLER_GEN_TMP_DIR ;\
-	go mod init tmp ;\
-	go install sigs.k8s.io/controller-tools/cmd/controller-gen@${CONTROLLER_TOOLS_TAG} ;\
-	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
-	}
+	@echo "controller-gen not found, downloading..."
+	curl -L -o controller-gen https://github.com/kubernetes-sigs/controller-tools/releases/download/${CONTROLLER_TOOLS_TAG}/controller-gen-linux-amd64
+	chmod +x controller-gen
+	mv controller-gen $(GOBIN)/controller-gen
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
