@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/kelseyhightower/envconfig"
-	"gomodules.xyz/jsonpatch/v2"
+	"gomodules.xyz/jsonpatch/v3"
 	admissionv1 "k8s.io/api/admission/v1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
