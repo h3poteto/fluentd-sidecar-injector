@@ -2,7 +2,7 @@
 
 # Get the currently used golang install path
 # Use ~/.local/bin for local development if it exists in PATH, otherwise use go bin
-ifneq (,$(findstring $(HOME)/.local/bin,$(PATH)))
+ifneq (,$(and $(findstring $(HOME)/.local/bin,$(PATH)),$(wildcard $(HOME)/.local/bin)))
 GOBIN=$(HOME)/.local/bin
 else
 ifeq (,$(shell go env GOBIN))
