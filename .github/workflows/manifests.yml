@@ -1,0 +1,25 @@
+name: Manifests
+
+on:
+  pull_request:
+
+jobs:
+  manifests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+      - name: Generate manifests
+        id: manifests
+        run: |
+          make manifests
+          diff=$(git status --short | wc -l) && echo "::set-output name=DIFF::$diff"
+      - name:
+        if: steps.manifests.outputs.DIFF != 0
+        run: |
+          echo "Manifests diff exists"
+          git status
+          exit 1
