@@ -61,13 +61,25 @@ func NewFilteredSidecarInjectorInformer(client versioned.Interface, resyncPeriod
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OperatorV1alpha1().SidecarInjectors().List(context.TODO(), options)
+				return client.OperatorV1alpha1().SidecarInjectors().List(context.Background(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OperatorV1alpha1().SidecarInjectors().Watch(context.TODO(), options)
+				return client.OperatorV1alpha1().SidecarInjectors().Watch(context.Background(), options)
+			},
+			ListWithContextFunc: func(ctx context.Context, options v1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
+				return client.OperatorV1alpha1().SidecarInjectors().List(ctx, options)
+			},
+			WatchFuncWithContext: func(ctx context.Context, options v1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
+				return client.OperatorV1alpha1().SidecarInjectors().Watch(ctx, options)
 			},
 		},
 		&apissidecarinjectorcontrollerv1alpha1.SidecarInjector{},

@@ -7,6 +7,11 @@ set -o pipefail
 SCRIPT_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 CODEGEN_PKG=${CODE_GENERATOR:-$(cd "${SCRIPT_ROOT}"; ls -d -1 ./vendor/k8s.io/code-generator 2>/dev/null || echo ../code-generator)}
 
+# Ensure we use the correct Go version if asdf is available
+if command -v asdf >/dev/null 2>&1; then
+    export PATH="$(asdf exec go env GOBIN):$(asdf exec go env GOROOT)/bin:$PATH"
+fi
+
 source "${CODEGEN_PKG}/kube_codegen.sh"
 
 kube::codegen::gen_helpers \
