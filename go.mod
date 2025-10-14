@@ -2,7 +2,7 @@ module github.com/h3poteto/fluentd-sidecar-injector
 
 go 1.24.0
 
-toolchain go1.24.5
+toolchain go1.25.3
 
 require (
 	github.com/kelseyhightower/envconfig v1.4.0
