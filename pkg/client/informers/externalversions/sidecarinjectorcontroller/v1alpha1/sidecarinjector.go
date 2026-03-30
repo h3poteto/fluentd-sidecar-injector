@@ -56,7 +56,7 @@ func NewSidecarInjectorInformer(client versioned.Interface, resyncPeriod time.Du
 // one. This reduces memory footprint and number of connections to the server.
 func NewFilteredSidecarInjectorInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
-		&cache.ListWatch{
+		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
@@ -81,7 +81,7 @@ func NewFilteredSidecarInjectorInformer(client versioned.Interface, resyncPeriod
 				}
 				return client.OperatorV1alpha1().SidecarInjectors().Watch(ctx, options)
 			},
-		},
+		}, client),
 		&apissidecarinjectorcontrollerv1alpha1.SidecarInjector{},
 		resyncPeriod,
 		indexers,
