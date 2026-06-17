@@ -1,22 +1,16 @@
 .PHONY: certs codegen
 
-# Get the currently used golang install path
-# Use ~/.local/bin for local development if it exists in PATH, otherwise use go bin
-ifneq (,$(and $(findstring $(HOME)/.local/bin,$(PATH)),$(wildcard $(HOME)/.local/bin)))
-GOBIN=$(HOME)/.local/bin
-else
-ifeq (,$(shell go env GOBIN))
-GOBIN=$(shell go env GOPATH)/bin
-else
-GOBIN=$(shell go env GOBIN)
-endif
-endif
+LOCALBIN ?= $(shell pwd)/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
 
 CRD_OPTIONS ?= "crd"
 CODE_GENERATOR=${GOPATH}/src/k8s.io/code-generator
-CODE_GENERATOR_TAG=v0.35.3
-CONTROLLER_TOOLS_TAG=v0.20.0
+CODE_GENERATOR_TAG=v0.36.1
+CONTROLLER_TOOLS_TAG=v0.21.0
 BRANCH := $(shell git branch --show-current)
+
+
 
 build: codegen manifests
 	go build -a -tags netgo -installsuffix netgo -ldflags \
@@ -39,7 +33,7 @@ uninstall: manifests
 clean:
 	rm -f ./*.crt
 	rm -f ./*.key
-	rm -f $(GOBIN)/controller-gen
+	rm -f $(LOCALBIN)/controller-gen
 	rm -rf $(CODE_GENERATOR)
 
 # boilerplate is necessary to avoid: https://github.com/kubernetes/code-generator/issues/131
@@ -54,15 +48,13 @@ ifeq (, $(wildcard ${CODE_GENERATOR}))
 	git clone https://github.com/kubernetes/code-generator.git ${CODE_GENERATOR} -b ${CODE_GENERATOR_TAG} --depth 1
 endif
 
-controller-gen:
-ifeq (, $(shell which controller-gen))
+CONTROLLER_GEN=$(LOCALBIN)/controller-gen
+
+controller-gen: $(LOCALBIN)
+ifeq (, $(wildcard $(LOCALBIN)/controller-gen))
 	@echo "controller-gen not found, downloading..."
-	curl -L -o controller-gen https://github.com/kubernetes-sigs/controller-tools/releases/download/${CONTROLLER_TOOLS_TAG}/controller-gen-linux-amd64
-	chmod +x controller-gen
-	mv controller-gen $(GOBIN)/controller-gen
-CONTROLLER_GEN=$(GOBIN)/controller-gen
-else
-CONTROLLER_GEN=$(shell which controller-gen)
+	curl -L -o $(LOCALBIN)/controller-gen https://github.com/kubernetes-sigs/controller-tools/releases/download/${CONTROLLER_TOOLS_TAG}/controller-gen-linux-amd64
+	chmod +x $(LOCALBIN)/controller-gen
 endif
 
 gpush:
